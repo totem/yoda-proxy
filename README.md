@@ -5,4 +5,4 @@ Yoda Dynamic Proxy. Provides a dynamic proxy solution using nginx, etcd and conf
 
 In Development  
 
-![Etcd Layout][architecture/etcd-layout.jpg]  
+![Etcd Layout](architecture/etcd-layout.jpg) 
