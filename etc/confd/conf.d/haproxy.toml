@@ -1,0 +1,11 @@
+[template]
+src   = "haproxy.cfg.tmpl"
+dest  = "/etc/haproxy/haproxy.cfg"
+uid = 0
+gid = 0
+mode  = "0644"
+keys = [
+  "/yoda",
+]
+check_cmd = "/etc/init.d/haproxy status"
+reload_cmd = "/etc/init.d/haproxy reload"
