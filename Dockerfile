@@ -40,7 +40,7 @@ ADD etc/confd /etc/confd
 
 #Env variables that can be overridden
 ENV ETCD_URL 172.17.0.1:4001
-ENV ETCD_PROXY_BASE /services/yoda
+ENV ETCD_PROXY_BASE /yoda
 
 EXPOSE 22 80 8081
 
