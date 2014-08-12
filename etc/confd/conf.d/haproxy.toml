@@ -6,8 +6,8 @@ gid = 0
 mode  = "0644"
 keys = [
   "global",
-  "locations",
-  "backends"
+  "hosts",
+  "upstreams"
 ]
-check_cmd = "/etc/init.d/haproxy status"
+check_cmd = "/usr/sbin/haproxy -c -f {{.src}}"
 reload_cmd = "/etc/init.d/haproxy reload"

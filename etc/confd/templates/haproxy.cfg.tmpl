@@ -32,14 +32,37 @@ defaults
 	errorfile 503 /etc/haproxy/errors/503.http
 	errorfile 504 /etc/haproxy/errors/504.http
 
+#Http frontend
 frontend http-in
-    bind {{ getv "/global/listener/http/bind" }}
-    default_backend test
+    bind {{ getv "/global/listeners/http/bind" }}
 
-backend test
-    option httpchk GET /
-    server s1 localhost:8181 maxconn 32
+    #Host ACLs
+    acl host_{{ getv "/global/hostname" }} hdr_dom(host) -i {{ getv "/global/hostname" }}
+    use_backend admin if host_{{ getv "/global/hostname" }}
+
+    {{ range $host := ls "/hosts" }}
+    acl host_{{$host}} hdr_dom(host) -i {{$host}}
+    {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
+    acl path_{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
+    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host_{{ $host }} path_{{$host}}-{{$pathName}}
+    {{ end }}
+    {{ end }}
+
+#Define all the backends
+{{ range $upstream := ls "/upstreams" }}
+backend {{$upstream}}
+   balance roundrobin
+   mode http
+   {{ range $endpoint := printf "/upstreams/%s/endpoints/*" $upstream | gets }}{{ $endpointName := $endpoint.Key | parent | base }}
+   server {{$endpointName}} {{$endpoint.Value}}  check
+   {{end}}
+{{ end }}
+
+
 
 listen admin
-    bind {{ getv "/global/listener/admin/bind" }}
+    bind {{ getv "/global/listeners/admin/bind" }}
     stats enable
+    stats hide-version
+    stats realm Haproxy\ Statistics
+    stats uri /
