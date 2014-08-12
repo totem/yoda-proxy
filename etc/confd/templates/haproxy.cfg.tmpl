@@ -33,7 +33,7 @@ defaults
 	errorfile 504 /etc/haproxy/errors/504.http
 
 frontend http-in
-    bind *:80
+    bind {{ getv "/global/listener/http/bind" }}
     default_backend test
 
 backend test
@@ -41,5 +41,5 @@ backend test
     server s1 localhost:8181 maxconn 32
 
 listen admin
-    bind *:8081
+    bind {{ getv "/global/listener/admin/bind" }}
     stats enable

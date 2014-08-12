@@ -3,7 +3,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV ETCDCTL_VERSION v0.4.6
 
 RUN apt-get update
-RUN apt-get install -y haproxy/trusty-backports supervisor openssh-server
+RUN apt-get install -y haproxy/trusty-backports supervisor openssh-server nano
 
 #Haproxy
 RUN mkdir -p /run/haproxy && chown -R haproxy:haproxy /run/haproxy
@@ -25,23 +25,20 @@ RUN chmod -R 400 /root/.ssh/* && chmod  500 /root/.ssh & chown -R root:root /roo
 ADD etc/supervisor /etc/supervisor
 
 #Confd
-ENV CONFD_VERSION 0.3.0
-RUN curl -L https://github.com/kelseyhightower/confd/releases/download/v$CONFD_VERSION/confd_${CONFD_VERSION}_linux_amd64.tar.gz -o /tmp/confd_${CONFD_VERSION}_linux_amd64.tar.gz
-RUN cd /tmp && tar -zxvf confd_${CONFD_VERSION}_linux_amd64.tar.gz
-RUN mv /tmp/confd /usr/local/bin
-RUN rm -rf /tmp/confd_${CONFD_VERSION}_linux_amd64.tar.gz
+ENV CONFD_VERSION 0.6.0-alpha3
+RUN curl -L https://github.com/kelseyhightower/confd/releases/download/v$CONFD_VERSION/confd-${CONFD_VERSION}-linux-amd64 -o /usr/local/bin/confd
+RUN chmod 555 /usr/local/bin/confd
 
 #Confd Defaults
-RUN mkdir -p /etc/confd/{conf.d,templates}
 ADD ./bin/confd-wrapper.sh /usr/sbin/confd-wrapper.sh
 RUN chmod 550 /usr/sbin/confd-wrapper.sh
 ADD etc/confd /etc/confd
 
-
 #Env variables that can be overridden
-ENV ETCD_URL 172.17.0.1:4001
+ENV ETCD_URL 172.17.42.1:4001
 ENV ETCD_PROXY_BASE /yoda
 
 EXPOSE 22 80 8081
 
 ENTRYPOINT ["/usr/bin/supervisord"]
+CMD ["-n"]

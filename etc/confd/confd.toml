@@ -1,7 +1,9 @@
-[confd]
 confdir  = "/etc/confd"
 interval = 5
 prefix   = "/yoda"
-etcd_nodes = [
-  "http://127.0.0.1:4001",
+nodes = [
+  "127.0.0.1:4001",
 ]
+quiet = false
+debug = false
+verbose = false

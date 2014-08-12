@@ -5,7 +5,9 @@ uid = 0
 gid = 0
 mode  = "0644"
 keys = [
-  "/yoda",
+  "global",
+  "locations",
+  "backends"
 ]
 check_cmd = "/etc/init.d/haproxy status"
 reload_cmd = "/etc/init.d/haproxy reload"
