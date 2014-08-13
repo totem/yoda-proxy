@@ -5,6 +5,9 @@ ENV ETCDCTL_VERSION v0.4.6
 RUN apt-get update
 RUN apt-get install -y haproxy/trusty-backports supervisor openssh-server nano
 
+#AWS Cli
+RUN pip install awscli==1.4.1
+
 #Haproxy
 RUN mkdir -p /run/haproxy && chown -R haproxy:haproxy /run/haproxy
 ADD ./bin/haproxy-wrapper.sh /usr/sbin/haproxy-wrapper.sh
@@ -34,12 +37,18 @@ ADD ./bin/confd-wrapper.sh /usr/sbin/confd-wrapper.sh
 RUN chmod 550 /usr/sbin/confd-wrapper.sh
 ADD etc/confd /etc/confd
 
+#Certificates Sync Job
+ADD ./bin/sync-certs.sh /usr/sbin/sync-certs.sh
+RUN chmod 550 /usr/sbin/sync-certs.sh
+
 #Env variables that can be overridden
 ENV ETCD_URL 172.17.42.1:4001
 ENV ETCD_PROXY_BASE /yoda
 ENV PROXY_HOST yoda.local.sh
+ENV SYNC_CERTS false
+ENV S3_YODA_BUCKET yoda-mubucket
 
-EXPOSE 22 80 8081
+EXPOSE 22 80 443 8081
 
 ENTRYPOINT ["/usr/bin/supervisord"]
 CMD ["-n"]

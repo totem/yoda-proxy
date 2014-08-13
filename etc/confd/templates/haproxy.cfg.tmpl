@@ -36,6 +36,11 @@ defaults
 frontend http-in
     bind {{ getv "/global/listeners/http/bind" }}
 
+    #Network ACLs
+    {{ range $acl := gets "/global/acls/allowed/*" }}
+    acl allowed_profile-{{base $acl.Key}} src {{$acl.Value}}
+    {{end}}
+
     #Host ACLs
     acl host_{{ getv "/global/hostname" }} hdr_dom(host) -i {{ getv "/global/hostname" }}
     use_backend admin if host_{{ getv "/global/hostname" }}
@@ -44,9 +49,26 @@ frontend http-in
     acl host_{{$host}} hdr_dom(host) -i {{$host}}
     {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
     acl path_{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
-    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host_{{ $host }} path_{{$host}}-{{$pathName}}
+    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host_{{ $host }} path_{{$host}}-{{$pathName}} allowed_profile-{{printf "/hosts/%s/locations/%s/security-profile" $host $pathName | getv}}
     {{ end }}
     {{ end }}
+
+#Https frontend
+frontend https-in
+  bind {{ getv "/global/listeners/https/bind" }}  ssl crt /etc/haproxy/certs.d ciphers ECDHE-RSA-AES256-SHA:RC4-SHA:RC4:HIGH:!MD5:!aNULL:!EDH:!AESGCM
+
+  #Network ACLs
+  {{ range $acl := gets "/global/acls/allowed/*" }}
+  acl allowed_profile-{{base $acl.Key}} src {{$acl.Value}}
+  {{end}}
+
+  {{ range $host := ls "/hosts" }}
+  acl host_{{$host}} hdr_dom(host) -i {{$host}}
+  {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
+  acl path_{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
+  use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host_{{ $host }} path_{{$host}}-{{$pathName}} allowed_profile-{{printf "/hosts/%s/locations/%s/security-profile" $host $pathName | getv}}
+  {{ end }}
+  {{ end }}
 
 #Define all the backends
 {{ range $upstream := ls "/upstreams" }}
@@ -58,11 +80,11 @@ backend {{$upstream}}
    {{end}}
 {{ end }}
 
-
-
 listen admin
     bind {{ getv "/global/listeners/admin/bind" }}
     stats enable
     stats hide-version
     stats realm Haproxy\ Statistics
     stats uri /
+
+##Reload Control Flag: {{ getv "/global/control/reload" }}
