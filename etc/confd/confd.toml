@@ -4,6 +4,6 @@ prefix   = "/yoda"
 nodes = [
   "127.0.0.1:4001",
 ]
-quiet = false
+quiet = true
 debug = false
 verbose = false
