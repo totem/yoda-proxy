@@ -1,3 +1,28 @@
+{{/* Template for CIDRS: Required for reuse in Http and Https frontends */}}
+{{define "CIDR_ACLS"}}{{ range $acl := gets "/global/acls/cidrs/*" }}
+    acl cidr-{{base $acl.Key}} src {{$acl.Value}}
+{{end}}{{end}}
+
+{{/* Template for Host ACLS and use_backend: Required for reuse in Http and Https frontends */}}
+{{define "HOST_ACLS"}}
+    {{ range $host := ls "/hosts" }}
+    acl host-{{$host}} hdr_dom(host) -i {{$host}}
+    {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
+    acl path-{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
+    #acl cidr-allowed-{{$host}}-{{$pathName}} src {{range printf "/hosts/%s/locations/%s/allowed-cidrs/*" $host $pathName | getvs}}cidr-{{.}}{{end}}
+{{/* Deny Requests if host, path matches but cidr does not */}}
+    http-request deny if host-{{$host}} path-{{$host}}-{{$pathName}} {{range printf "/hosts/%s/locations/%s/allowed-cidrs/*" $host $pathName | getvs}} !cidr-{{.}}{{end}}
+    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host-{{$host}} path-{{$host}}-{{$pathName}}
+  {{ end }}{{ end }}
+{{end}}
+
+{{/* Global Black Listing */}}
+{{define "GLOBAL_BLACKLIST"}}
+    acl cidr-global-black-list src {{ getv "/global/acls/cidrs/global-black-list" }}
+    http-request deny if cidr-global-black-list
+{{end}}
+
+
 global
 	log /dev/log	local0
 	log /dev/log	local1 notice
@@ -36,39 +61,30 @@ defaults
 frontend http-in
     bind {{ getv "/global/listeners/http/bind" }}
 
-    #Network ACLs
-    {{ range $acl := gets "/global/acls/allowed/*" }}
-    acl allowed_profile-{{base $acl.Key}} src {{$acl.Value}}
-    {{end}}
+    #CIDR ACLs
+    {{ template "CIDR_ACLS" }}
+
+    #Global Blacklist
+    {{ template "GLOBAL_BLACKLIST" }}
 
     #Host ACLs
-    acl host_{{ getv "/global/hostname" }} hdr_dom(host) -i {{ getv "/global/hostname" }}
-    use_backend admin if host_{{ getv "/global/hostname" }}
+    acl host-{{ getv "/global/hostname" }} hdr_dom(host) -i {{ getv "/global/hostname" }}
+    use_backend admin if host-{{ getv "/global/hostname" }}
 
-    {{ range $host := ls "/hosts" }}
-    acl host_{{$host}} hdr_dom(host) -i {{$host}}
-    {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
-    acl path_{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
-    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host_{{ $host }} path_{{$host}}-{{$pathName}} allowed_profile-{{printf "/hosts/%s/locations/%s/security-profile" $host $pathName | getv}}
-    {{ end }}
-    {{ end }}
+    {{ template "HOST_ACLS" }}
 
 #Https frontend
 frontend https-in
   bind {{ getv "/global/listeners/https/bind" }}  ssl crt /etc/haproxy/certs.d ciphers ECDHE-RSA-AES256-SHA:RC4-SHA:RC4:HIGH:!MD5:!aNULL:!EDH:!AESGCM
 
-  #Network ACLs
-  {{ range $acl := gets "/global/acls/allowed/*" }}
-  acl allowed_profile-{{base $acl.Key}} src {{$acl.Value}}
-  {{end}}
+  #CIDR ACLs
+  {{ template "CIDR_ACLS" }}
 
-  {{ range $host := ls "/hosts" }}
-  acl host_{{$host}} hdr_dom(host) -i {{$host}}
-  {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
-  acl path_{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
-  use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host_{{ $host }} path_{{$host}}-{{$pathName}} allowed_profile-{{printf "/hosts/%s/locations/%s/security-profile" $host $pathName | getv}}
-  {{ end }}
-  {{ end }}
+  #Global Blacklist
+  {{ template "GLOBAL_BLACKLIST" }}
+
+  #Host ACLs
+  {{ template "HOST_ACLS" }}
 
 #Define all the backends
 {{ range $upstream := ls "/upstreams" }}

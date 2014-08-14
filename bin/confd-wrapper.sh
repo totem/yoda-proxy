@@ -18,8 +18,8 @@ $ETCDCTL get $LISTENER_PATH/https/bind || $ETCDCTL set $LISTENER_PATH/https/bind
 $ETCDCTL get $LISTENER_PATH/admin/bind || $ETCDCTL set $LISTENER_PATH/admin/bind localhost:8081
 
 #Default ACLs
-$ETCDCTL get $ETCD_PROXY_BASE/global/acls/allowed/public || $ETCDCTL set $ETCD_PROXY_BASE/global/acls/allowed/public "0.0.0.0/0"
-
+$ETCDCTL get $ETCD_PROXY_BASE/global/acls/cidrs/public || $ETCDCTL set $ETCD_PROXY_BASE/global/acls/cidrs/public "0.0.0.0/0"
+$ETCDCTL get $ETCD_PROXY_BASE/global/acls/cidrs/global-black-list || $ETCDCTL set $ETCD_PROXY_BASE/global/acls/cidrs/global-black-list ""
 
 
 sed -i -e "s/127.0.0.1[:]4001/$ETCD_URL/g" /etc/confd/confd.toml
