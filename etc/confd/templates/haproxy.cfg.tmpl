@@ -3,16 +3,27 @@
     acl cidr-{{base $acl.Key}} src {{$acl.Value}}
 {{end}}{{end}}
 
+{{/* Template for use_backends */}}
+{{define "USE_BACKENDS"}}{{ range $host := ls "/hosts" }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
+    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host-{{$host}} path-{{$host}}-{{$pathName}}
+{{ end }}{{ end }}{{end}}
+
+{{/* Template for force ssl */}}
+{{define "FORCE_SSL"}}{{ range $host := ls "/hosts" }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
+    {{ if printf "/hosts/%s/locations/%s/force-ssl" $host $pathName | gets}}
+        #Force SSL for $host/$pathName
+        redirect scheme https code 301 if !{ ssl_fc } host-{{$host}} path-{{$host}}-{{$pathName}}
+    {{end}}
+{{ end }}{{ end }}{{end}}
+
 {{/* Template for Host ACLS and use_backend: Required for reuse in Http and Https frontends */}}
 {{define "HOST_ACLS"}}
     {{ range $host := ls "/hosts" }}
     acl host-{{$host}} hdr_dom(host) -i {{$host}}
     {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
     acl path-{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
-    #acl cidr-allowed-{{$host}}-{{$pathName}} src {{range printf "/hosts/%s/locations/%s/allowed-cidrs/*" $host $pathName | getvs}}cidr-{{.}}{{end}}
 {{/* Deny Requests if host, path matches but cidr does not */}}
     http-request deny if host-{{$host}} path-{{$host}}-{{$pathName}} {{range printf "/hosts/%s/locations/%s/allowed-cidrs/*" $host $pathName | getvs}} !cidr-{{.}}{{end}}
-    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host-{{$host}} path-{{$host}}-{{$pathName}}
   {{ end }}{{ end }}
 {{end}}
 
@@ -24,38 +35,38 @@
 
 
 global
-	log /dev/log	local0
-	log /dev/log	local1 notice
-	chroot /var/lib/haproxy
-	stats socket /run/haproxy/admin.sock mode 660 level admin
-	stats timeout 30s
-	user haproxy
-	group haproxy
-	daemon
+    log /dev/log	local0
+    log /dev/log	local1 notice
+    chroot /var/lib/haproxy
+    stats socket /run/haproxy/admin.sock mode 660 level admin
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
 
-	# Default SSL material locations
-	ca-base /etc/ssl/certs
-	crt-base /etc/ssl/private
+    # Default SSL material locations
+    ca-base /etc/ssl/certs
+    crt-base /etc/ssl/private
 
-	# Default ciphers to use on SSL-enabled listening sockets.
-	# For more information, see ciphers(1SSL).
-	ssl-default-bind-ciphers kEECDH+aRSA+AES:kRSA+AES:+AES256:RC4-SHA:!kEDH:!LOW:!EXP:!MD5:!aNULL:!eNULL
+    # Default ciphers to use on SSL-enabled listening sockets.
+    # For more information, see ciphers(1SSL).
+    ssl-default-bind-ciphers kEECDH+aRSA+AES:kRSA+AES:+AES256:RC4-SHA:!kEDH:!LOW:!EXP:!MD5:!aNULL:!eNULL
 
 defaults
-	log	global
-	mode	http
-	option	httplog
-	option	dontlognull
-        timeout connect 5000
-        timeout client  50000
-        timeout server  50000
-	errorfile 400 /etc/haproxy/errors/400.http
-	errorfile 403 /etc/haproxy/errors/403.http
-	errorfile 408 /etc/haproxy/errors/408.http
-	errorfile 500 /etc/haproxy/errors/500.http
-	errorfile 502 /etc/haproxy/errors/502.http
-	errorfile 503 /etc/haproxy/errors/503.http
-	errorfile 504 /etc/haproxy/errors/504.http
+    log	global
+    mode	http
+    option	httplog
+    option	dontlognull
+          timeout connect 5000
+          timeout client  50000
+          timeout server  50000
+    errorfile 400 /etc/haproxy/errors/400.http
+    errorfile 403 /etc/haproxy/errors/403.http
+    errorfile 408 /etc/haproxy/errors/408.http
+    errorfile 500 /etc/haproxy/errors/500.http
+    errorfile 502 /etc/haproxy/errors/502.http
+    errorfile 503 /etc/haproxy/errors/503.http
+    errorfile 504 /etc/haproxy/errors/504.http
 
 #Http frontend
 frontend http-in
@@ -69,22 +80,42 @@ frontend http-in
 
     #Host ACLs
     acl host-{{ getv "/global/hostname" }} hdr_dom(host) -i {{ getv "/global/hostname" }}
-    use_backend admin if host-{{ getv "/global/hostname" }}
 
+    #Dynamic ACLs
     {{ template "HOST_ACLS" }}
+
+    #Force SSL
+    {{ template "FORCE_SSL" }}
+
+    #Use Backends
+    {{ template "USE_BACKENDS" }}
+    use_backend admin if host-{{ getv "/global/hostname" }}
 
 #Https frontend
 frontend https-in
-  bind {{ getv "/global/listeners/https/bind" }}  ssl crt /etc/haproxy/certs.d ciphers ECDHE-RSA-AES256-SHA:RC4-SHA:RC4:HIGH:!MD5:!aNULL:!EDH:!AESGCM
+    bind {{ getv "/global/listeners/https/bind" }}  ssl crt /etc/haproxy/certs.d ciphers ECDHE-RSA-AES256-SHA:RC4-SHA:RC4:HIGH:!MD5:!aNULL:!EDH:!AESGCM
+    {{ template "CIDR_ACLS" }}
 
-  #CIDR ACLs
-  {{ template "CIDR_ACLS" }}
+    #Global Blacklist
+    {{ template "GLOBAL_BLACKLIST" }}
 
-  #Global Blacklist
-  {{ template "GLOBAL_BLACKLIST" }}
+    #Dynamic ACLs
+    {{ template "HOST_ACLS" }}
 
-  #Host ACLs
-  {{ template "HOST_ACLS" }}
+    #Additional Headers
+    reqadd X-Forwarded-Proto:\ https
+
+    #Force SSL
+    {{ template "FORCE_SSL" }}
+
+    #Use Backends
+    {{ template "USE_BACKENDS" }}
+
+    #SSL Related Options
+    option http-server-close
+    option forwardfor
+
+
 
 #Define all the backends
 {{ range $upstream := ls "/upstreams" }}
