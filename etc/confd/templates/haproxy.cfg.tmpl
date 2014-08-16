@@ -1,37 +1,38 @@
 {{/* Template for CIDRS: Required for reuse in Http and Https frontends */}}
-{{define "CIDR_ACLS"}}{{ range $acl := gets "/global/acls/cidrs/*" }}
-    acl cidr-{{base $acl.Key}} src {{$acl.Value}}
+{{define "CIDR_ACLS"}}{{ range $acl := gets "/global/acls/*/cidr/src" }}
+    acl {{$acl.Key | parent | parent | base}} src {{$acl.Value}}
 {{end}}{{end}}
+
+{{/* Global Black Listing */}}
+{{define "GLOBAL_BLACKLIST"}}
+    http-request deny if global-black-list
+{{end}}
 
 {{/* Template for use_backends */}}
 {{define "USE_BACKENDS"}}{{ range $host := ls "/hosts" }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
-    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if host-{{$host}} path-{{$host}}-{{$pathName}}
+    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if __host-{{$host}} __path-{{$host}}-{{$pathName}}
 {{ end }}{{ end }}{{end}}
 
 {{/* Template for force ssl */}}
 {{define "FORCE_SSL"}}{{ range $host := ls "/hosts" }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
     {{ if printf "/hosts/%s/locations/%s/force-ssl" $host $pathName | gets}}
         #Force SSL for $host/$pathName
-        redirect scheme https code 301 if !{ ssl_fc } host-{{$host}} path-{{$host}}-{{$pathName}}
+        redirect scheme https code 301 if !{ ssl_fc } __host-{{$host}} __path-{{$host}}-{{$pathName}}
     {{end}}
 {{ end }}{{ end }}{{end}}
 
 {{/* Template for Host ACLS and use_backend: Required for reuse in Http and Https frontends */}}
 {{define "HOST_ACLS"}}
     {{ range $host := ls "/hosts" }}
-    acl host-{{$host}} hdr_dom(host) -i {{$host}}
+    acl __host-{{$host}} hdr_dom(host) -i {{$host}}
     {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
-    acl path-{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
+    acl __path-{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
 {{/* Deny Requests if host, path matches but cidr does not */}}
-    http-request deny if host-{{$host}} path-{{$host}}-{{$pathName}} {{range printf "/hosts/%s/locations/%s/allowed-cidrs/*" $host $pathName | getvs}} !cidr-{{.}}{{end}}
+    http-request deny if {{range printf "/hosts/%s/locations/%s/acls/denied/*" $host $pathName  | getvs}} __host-{{$host}} __path-{{$host}}-{{$pathName}} {{.}} or{{end}}
+    http-request deny if __host-{{$host}} __path-{{$host}}-{{$pathName}} {{range printf "/hosts/%s/locations/%s/acls/allowed/*" $host $pathName | getvs}}!{{.}}{{end}}
   {{ end }}{{ end }}
 {{end}}
 
-{{/* Global Black Listing */}}
-{{define "GLOBAL_BLACKLIST"}}
-    acl cidr-global-black-list src {{ getv "/global/acls/cidrs/global-black-list" }}
-    http-request deny if cidr-global-black-list
-{{end}}
 
 
 global
