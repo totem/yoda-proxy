@@ -1,25 +1,25 @@
 {{/* Template for CIDRS: Required for reuse in Http and Https frontends */}}
-{{define "CIDR_ACLS"}}{{ range $acl := gets "/global/acls/*/cidr/src" }}
+{{define "CIDR_ACLS"}}{{if ls "/global/acls"}}{{ range $acl := gets "/global/acls/*/cidr/src" }}
     acl {{$acl.Key | parent | parent | base}} src {{$acl.Value}}
-{{end}}{{end}}
+{{end}}{{end}}{{end}}
 
 {{/* Global Black Listing */}}
-{{define "GLOBAL_BLACKLIST"}}
+{{define "GLOBAL_BLACKLIST"}}{{if ls "/global/acls/global-black-list/cidr"}}
     http-request deny if global-black-list
-{{end}}
+{{end}}{{end}}
 
 {{/* Template for use_backends */}}
-{{define "USE_BACKENDS"}}{{ range $host := ls "/hosts" }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
+{{define "USE_BACKENDS"}}{{ range $host := ls "/hosts" }}{{if printf "/hosts/%s/locations" $host | ls }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
     use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if __host-{{$host}} __path-{{$host}}-{{$pathName}}
-{{ end }}{{ end }}{{end}}
+{{end}}{{end}}{{end}}{{end}}
 
 {{/* Template for force ssl */}}
-{{define "FORCE_SSL"}}{{ range $host := ls "/hosts" }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
-    {{ if printf "/hosts/%s/locations/%s/force-ssl" $host $pathName | gets}}
-        #Force SSL for $host/$pathName
-        redirect scheme https code 301 if !{ ssl_fc } __host-{{$host}} __path-{{$host}}-{{$pathName}}
-    {{end}}
-{{ end }}{{ end }}{{end}}
+{{define "FORCE_SSL"}}{{ range $host := ls "/hosts" }}{{if printf "/hosts/%s/locations" $host | ls }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
+    {{ if printf "/hosts/%s/locations/%s" $host $pathName | ls}}{{ if printf "/hosts/%s/locations/%s/force-ssl" $host $pathName | gets}}
+    #Force SSL for $host/$pathName
+    redirect scheme https code 301 if !{ ssl_fc } __host-{{$host}} __path-{{$host}}-{{$pathName}}
+    {{end}}{{end}}
+{{ end }}{{ end }}{{end}}{{end}}
 
 {{/* Template for Host ACLS and use_backend: Required for reuse in Http and Https frontends */}}
 {{define "HOST_ACLS"}}
@@ -27,10 +27,18 @@
     acl __host-{{$host}} hdr_dom(host) -i {{$host}}
     {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
     acl __path-{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
-{{/* Deny Requests if host, path matches but cidr does not */}}
+{{/* Deny Requests if host, path matches and any of cidrs matches */}}
+    {{if printf "/hosts/%s/locations/%s/acls/denied" $host $pathName | ls }}
+    #Denied ACL for {{$host}}/{{$pathName}}
     http-request deny if {{range printf "/hosts/%s/locations/%s/acls/denied/*" $host $pathName  | getvs}} __host-{{$host}} __path-{{$host}}-{{$pathName}} {{.}} or{{end}}
+    {{end}}
+
+    {{if printf "/hosts/%s/locations/%s/acls/allowed" $host $pathName | ls }}
+{{/* Deny Requests if host, path matches but cidr does not */}}
+    #Allowed ACLs for {{$host}}/{{$pathName}}
     http-request deny if __host-{{$host}} __path-{{$host}}-{{$pathName}} {{range printf "/hosts/%s/locations/%s/acls/allowed/*" $host $pathName | getvs}}!{{.}}{{end}}
-  {{ end }}{{ end }}
+    {{end}}
+    {{ end }}{{ end }}
 {{end}}
 
 
@@ -69,6 +77,7 @@ defaults
     errorfile 503 /etc/haproxy/errors/503.http
     errorfile 504 /etc/haproxy/errors/504.http
 
+{{ if ls "/global/listeners/http/" }}
 #Http frontend
 frontend http-in
     bind {{ getv "/global/listeners/http/bind" }}
@@ -91,7 +100,9 @@ frontend http-in
     #Use Backends
     {{ template "USE_BACKENDS" }}
     use_backend admin if host-{{ getv "/global/hostname" }}
+{{end}}
 
+{{ if ls "/global/listeners/https" }}
 #Https frontend
 frontend https-in
     bind {{ getv "/global/listeners/https/bind" }}  ssl crt /etc/haproxy/certs.d ciphers ECDHE-RSA-AES256-SHA:RC4-SHA:RC4:HIGH:!MD5:!aNULL:!EDH:!AESGCM
@@ -115,24 +126,28 @@ frontend https-in
     #SSL Related Options
     option http-server-close
     option forwardfor
-
+{{ end }}
 
 
 #Define all the backends
-{{ range $upstream := ls "/upstreams" }}
+{{ range $upstream := ls "/upstreams" }}{{if printf "/upstreams/%s/endpoints" $upstream | ls }}
 backend {{$upstream}}
    balance roundrobin
    mode http
    {{ range $endpoint := printf "/upstreams/%s/endpoints/*" $upstream | gets }}{{ $endpointName := $endpoint.Key | parent | base }}
    server {{$endpointName}} {{$endpoint.Value}}  check
    {{end}}
-{{ end }}
+{{ end }}{{end}}
 
+{{ if ls "/global/listeners/admin" }}
 listen admin
     bind {{ getv "/global/listeners/admin/bind" }}
     stats enable
     stats hide-version
     stats realm Haproxy\ Statistics
     stats uri /
+{{end}}
 
+{{ if ls "/global/control" }}
 ##Reload Control Flag: {{ getv "/global/control/reload" }}
+{{end}}
