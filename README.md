@@ -1,15 +1,19 @@
 Yoda
 ====
 <pre>
-____    ____  ______    _______       ___           .______   .______        ______   ___   ___ ____    ____ 
-\   \  /   / /  __  \  |       \     /   \          |   _  \  |   _  \      /  __  \  \  \ /  / \   \  /   / 
- \   \/   / |  |  |  | |  .--.  |   /  ^  \   ______|  |_)  | |  |_)  |    |  |  |  |  \  V  /   \   \/   /  
-  \_    _/  |  |  |  | |  |  |  |  /  /_\  \ |______|   ___/  |      /     |  |  |  |   >   <     \_    _/   
-    |  |    |  `--'  | |  '--'  | /  _____  \       |  |      |  |\  \----.|  `--'  |  /  .  \      |  |     
-    |__|     \______/  |_______/ /__/     \__\      | _|      | _| `._____| \______/  /__/ \__\     |__|    
+____    ____  ______    _______       ___      
+\   \  /   / /  __  \  |       \     /   \     
+ \   \/   / |  |  |  | |  .--.  |   /  ^  \    
+  \_    _/  |  |  |  | |  |  |  |  /  /_\  \   
+    |  |    |  `--'  | |  '--'  | /  _____  \  
+    |__|     \______/  |_______/ /__/     \__\ 
+                                               
 </pre>
 
-Yoda provides a dynamic proxy solution using haproxy, etcd and confd. A lot of code/config has been ported from deis project. The etcd structure has been adopted based on Vulcand project.
+
+Yoda provides a dynamic proxy solution using haproxy, etcd and confd. 
+A lot of code/config has been ported from deis project. The etcd structure 
+has been adopted based on Vulcand project.
 
 ![Etcd Layout](architecture/etcd-layout.jpg) 
 
@@ -26,10 +30,13 @@ sudo docker run --name yoda --rm -t -i -P -p 80:80 -p 443:443 -p 2022:22 totem/y
 ```
 
 ### Execution with SNI SSL Certificates
-In order to run with SNI certificates, you need to have Amazon S3 account with read permission on ssl certificates bucket. Your S3 certificates should be grouped together with key prefix (or fodler name "certs.d"). 
+In order to run with SNI certificates, you need to have Amazon S3 account with
+read permission on ssl certificates bucket. Your S3 certificates should be 
+grouped together with key prefix (or fodler name "certs.d"). 
 E.g.:
 yoda-s3-bucket/certs.d/certificate1.pem yoda-s3-bucket/certs.d/certificate2.pem
-For SNI to work, ensure that each PEM certificate consists of : Private Key, Public Key, CA Chain (In this order).  
+For SNI to work, ensure that each PEM certificate consists of : 
+Private Key, Public Key, CA Chain (In this order).  
 
 In order to start the proxy instance, run command:  
 
