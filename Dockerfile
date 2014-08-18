@@ -8,6 +8,10 @@ RUN apt-get install -y haproxy/trusty-backports supervisor openssh-server nano
 #AWS Cli
 RUN pip install awscli==1.4.1
 
+#Syslog
+RUN echo '$PreserveFQDN on' | cat - /etc/rsyslog.conf > /tmp/rsyslog.conf && sudo mv /tmp/rsyslog.conf /etc/rsyslog.conf
+RUN sed -i 's~^#\$ModLoad immark\(.*\)$~$ModLoad immark \1~' /etc/rsyslog.conf
+
 #Haproxy
 RUN mkdir -p /run/haproxy && chown -R haproxy:haproxy /run/haproxy
 ADD ./bin/haproxy-wrapper.sh /usr/sbin/haproxy-wrapper.sh

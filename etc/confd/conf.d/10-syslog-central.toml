@@ -1,0 +1,11 @@
+[template]
+src   = "10-syslog-central.conf.tmpl"
+dest  = "/etc/rsyslog.d/10-syslog-central.conf"
+uid = 0
+gid = 0
+mode  = "0644"
+keys = [
+  "syslog"
+]
+check_cmd = "/bin/bash -c '/usr/sbin/rsyslogd -N1 -f {{.src}} 1>/var/log/rsyslogd-check.log 2>&1'"
+reload_cmd = "/usr/bin/supervisorctl restart rsyslog"
