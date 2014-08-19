@@ -1,14 +1,11 @@
-Yoda
-====
-<pre>____    ____ ______   _______      ___     
+<pre>
+____    ____ ______   _______      ___     
 \   \  /   //  __  \ |       \    /   \    
  \   \/   /|  |  |  ||  .--.  |  /  ^  \   
   \_    _/ |  |  |  ||  |  |  | /  /_\  \  
     |  |   |  `--'  ||  '--'  |/  _____  \ 
     |__|    \______/ |_______//__/     \__\
 </pre>
-
-
 Yoda provides a dynamic proxy solution using haproxy, etcd and confd. 
 A lot of code/config has been ported from deis project. The etcd structure 
 has been adopted based on Vulcand project.
