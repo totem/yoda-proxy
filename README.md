@@ -27,18 +27,50 @@ sudo docker run --name yoda --rm -t -i -P -p 80:80 -p 443:443 -p 2022:22 totem/y
 ### Execution with SNI SSL Certificates
 In order to run with SNI certificates, you need to have Amazon S3 account with
 read permission on ssl certificates bucket. Your S3 certificates should be 
-grouped together with key prefix (or fodler name "certs.d"). 
-E.g.:
-yoda-s3-bucket/certs.d/certificate1.pem yoda-s3-bucket/certs.d/certificate2.pem
+grouped together with key prefix (or fodler name "certs.d").  
+
+E.g.:  
+yoda-s3-bucket/certs.d/certificate1.pem  
+yoda-s3-bucket/certs.d/certificate2.pem  
+
 For SNI to work, ensure that each PEM certificate consists of : 
 Private Key, Public Key, CA Chain (In this order).  
 
-In order to start the proxy instance, run command:  
+Once ssl bucket is setup, simply run command below to start your proxy:  
 
 ```
 sudo docker run --name yoda --rm -t -i -P -p 80:80 -p 443:443 -p 2022:22 -e AWS_ACCESS_KEY_ID=<<S3_ACCESS_KEY_ID>> -e AWS_SECRET_ACCESS_KEY=<<S3_SECRET_KEY>> -e S3_YODA_BUCKET=<<S3_BUCKET_NAME>> -e SYNC_CERTS=true totem/yoda-proxy
 ```
 
+## ETCD Configuration
+
+###Upstreams (Backend Servers)
+In order to register your backend servers for your host, run command:
+```
+etcdctl set /yoda/upstreams/<<upstream-name>>/endpoints/<<service-name>> <<service-host>>:<<service-port>>
+```
+where:  
+**upstream-name** is logical name for your upstream. e.g.: backend-abc.myapp.com  
+**service-name** is name of your service. E.g.: node1  
+**service-host** is host/ip address for your service  
+**service-port** is port at which your service listens to.  
+
+e.g: 
+```
+etcdctl set /yoda/upstreams/backend-abc.myapp.com/endpoints/node1 10.12.12.101:80
+etcdctl set /yoda/upstreams/backend-abc.myapp.com/endpoints/node2 10.12.12.101:80
+```  
+
+###Host and Location Information
+In order to register your hosts and location, run commands:
+
+```
+etcdctl set /yoda/hosts/abc.myapp.com/locations/home/acls/allowed/a1 public
+etcdctl set /yoda/hosts/abc.myapp.com/locations/home/acls/denied/d1 global-black-list
+etcdctl set /yoda/hosts/abc.myapp.com/locations/home/path /
+etcdctl set /yoda/hosts/abc.myapp.com/locations/home/force-ssl false
+etcdctl set /yoda/hosts/abc.myapp.com/locations/home/upstream backend-abc.myapp.com
+```
 
 
 
