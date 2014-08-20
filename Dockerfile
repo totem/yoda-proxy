@@ -45,6 +45,9 @@ ADD etc/confd /etc/confd
 ADD ./bin/sync-certs.sh /usr/sbin/sync-certs.sh
 RUN chmod 550 /usr/sbin/sync-certs.sh
 
+#Default Certs
+ADD /etc/haproxy/certs.d /etc/haproxy/certs.d
+
 #Env variables that can be overridden
 ENV ETCD_URL 172.17.42.1:4001
 ENV ETCD_PROXY_BASE /yoda
