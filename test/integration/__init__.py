@@ -2,21 +2,25 @@ __author__ = 'sukrit'
 
 import os
 import time
-import requests
 from subprocess import call, check_call
 import SimpleHTTPServer
 import SocketServer
+import etcd
+
 from threading import Thread
 
 DOCKER = os.environ.get('DOCKER_CMD', 'docker -H 127.0.0.1:8283')
 ETCD_PROXY_BASE = os.environ.get('ETCD_PROXY_BASE', '/yoda-integration')
-ETCDCTL = os.environ.get('ETCDCTL_CMD', 'etcdctl')
+ETCD_HOST = os.environ.get('ETCD_HOST', 'localhost')
+ETCD_PORT = int(os.environ.get('ETCD_POR', '4001'))
 HTTP_TEST_TIMEOUT=10  #In seconds
+MODULE_DIR=os.path.abspath(os.path.dirname(__file__))
 
 
 def build_yoda():
     check_call(
-        '%s build --rm  -t totem/yoda-integration ../../' % DOCKER, shell=True)
+        '{DOCKER} build --rm  -t totem/yoda-integration {MODULE_DIR}/../../'
+        .format(DOCKER=DOCKER, MODULE_DIR=MODULE_DIR), shell=True)
 
 
 def setup_yoda_sni():
@@ -57,13 +61,19 @@ def destroy_yoda():
     call('%s stop yoda-integration' % DOCKER, shell=True)
     call('%s rm yoda-integration' % DOCKER, shell=True)
     call('%s rmi  totem/yoda-integration' % DOCKER, shell=True)
-    call('{ETCDCTL} rm --recursive {ETCD_PROXY_BASE}'.format(
-        ETCDCTL=ETCDCTL, ETCD_PROXY_BASE=ETCD_PROXY_BASE), shell=True)
+    delete_etcd_dir()
     pass
 
 
+def get_etcd_client():
+    return etcd.Client(host=ETCD_HOST, port=ETCD_PORT)
+
 def set_etcd_key(key, value):
-    call('{ETCDCTL} set {ETCD_PROXY_BASE}{key} {value}'.format(
-        ETCDCTL=ETCDCTL, ETCD_PROXY_BASE=ETCD_PROXY_BASE, key=key,value=value),
-        shell=True)
+    use_key = '%s%s' % (ETCD_PROXY_BASE,key)
+    get_etcd_client().set(use_key, value)
+
+
+def delete_etcd_dir(key=None):
+    use_key = '%s%s' % (ETCD_PROXY_BASE,key) if key else ETCD_PROXY_BASE
+    get_etcd_client().delete(use_key,recursive=True, dir=True)
 

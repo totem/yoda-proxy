@@ -72,6 +72,25 @@ etcdctl set /yoda/hosts/abc.myapp.com/locations/home/force-ssl false
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/upstream backend-abc.myapp.com
 ```
 
+## Integration Test
+In order to execute integration test, you need  
+- python 2.7.x  
+- libffi-dev  
+- libssl-dev
+
+Install the requirements by executing following commands:  
+```
+cd test
+pip install -r requirements.txt
+```  
+
+Once dependencies are installed, use nosetests to run the integration test from
+test folder:  
+```
+nosetests --nocapture
+```
+
+
 
 
 

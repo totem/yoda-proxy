@@ -14,12 +14,12 @@ __author__ = 'sukrit'
 
 
 def setup_module():
-    #setup_yoda()
+    setup_yoda()
     pass
 
 
 def teardown_module():
-    #destroy_yoda()
+    destroy_yoda()
     pass
 
 
