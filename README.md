@@ -29,7 +29,8 @@ In order to run with SNI certificates, you need to have Amazon S3 account with
 read permission on ssl certificates bucket. Your S3 certificates should be 
 grouped together with key prefix (or fodler name "certs.d").  
 
-E.g.:  
+E.g.:
+yoda-s3-bucket/certs.d/default.pem   (Note: Default cert is mandatory)
 yoda-s3-bucket/certs.d/certificate1.pem  
 yoda-s3-bucket/certs.d/certificate2.pem  
 
@@ -62,15 +63,36 @@ etcdctl set /yoda/upstreams/backend-abc.myapp.com/endpoints/node2 10.12.12.101:8
 ```  
 
 ###Host and Location Information
-In order to register your hosts and location, run commands:
+In order to register your hosts and location:
+- **Specify allowed, denied, acls**
+  /yoda/hosts/{hostname}/locations/{location-name}/acls/allowed/{allowed-entry-name} {acl_name}
+  /yoda/hosts/abc.myapp.com/locations/home/acls/denied/{denied-entry-name} {acl_name}  
+  e.g.:  
 
 ```
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/acls/allowed/a1 public
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/acls/denied/d1 global-black-list
+```  
+
+- **Specify Proxy Path**
+  /yoda/hosts/{hostname}/locations/{location-name}/path {path_value}  
+  e.g.:
+```
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/path /
-etcdctl set /yoda/hosts/abc.myapp.com/locations/home/force-ssl false
+```  
+
+- **Specify Upstream for proxy**
+  /yoda/hosts/{hostname}/locations/{location-name}/upstream {upstream}
+  e.g.:
+```
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/upstream backend-abc.myapp.com
 ```
+Once you are ready to switch proxy to new upstream for doing blue-green deploys, 
+simply execute command:  
+```
+etcdctl set /yoda/hosts/abc.myapp.com/locations/home/upstream backend-abc.myapp.com-v2
+```
+
 
 ## Integration Test
 In order to execute integration test, you need  
