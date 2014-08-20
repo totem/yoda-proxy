@@ -8,9 +8,11 @@
     http-request deny if global-black-list
 {{end}}{{end}}
 
-{{/* Template for use_backends */}}
+{{/* Template for use_backends. */}}
 {{define "USE_BACKENDS"}}{{ range $host := ls "/hosts" }}{{if printf "/hosts/%s/locations" $host | ls }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
-    use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if __host-{{$host}} __path-{{$host}}-{{$pathName}}
+{{/* Do not include backends if upstream is empty or if it does not exist */}}
+    {{ $upstream := printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv}}{{ $endpoints := printf "/upstreams/%s/endpoints" $upstream | ls}}
+    {{if and $upstream $endpoints}}use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if __host-{{$host}} __path-{{$host}}-{{$pathName}}{{end}}
 {{end}}{{end}}{{end}}{{end}}
 
 {{/* Template for force ssl */}}
