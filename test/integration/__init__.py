@@ -6,6 +6,7 @@ from subprocess import call, check_call
 import SimpleHTTPServer
 import SocketServer
 import etcd
+import requests
 
 from threading import Thread
 
@@ -56,6 +57,17 @@ class MockHttpServer:
     def __exit__(self, exit_type, exit_value, exit_traceback):
         self.httpd.shutdown()
 
+class CleanupEtcdFolders:
+    def __init__(self, keys):
+        self.keys = keys or []
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for key in self.keys:
+            delete_etcd_dir(key)
+
 
 def destroy_yoda():
     call('%s stop yoda-integration' % DOCKER, shell=True)
@@ -68,12 +80,71 @@ def destroy_yoda():
 def get_etcd_client():
     return etcd.Client(host=ETCD_HOST, port=ETCD_PORT)
 
+
 def set_etcd_key(key, value):
     use_key = '%s%s' % (ETCD_PROXY_BASE,key)
     get_etcd_client().set(use_key, value)
 
 
-def delete_etcd_dir(key=None):
-    use_key = '%s%s' % (ETCD_PROXY_BASE,key) if key else ETCD_PROXY_BASE
-    get_etcd_client().delete(use_key,recursive=True, dir=True)
+def rm_etcd_key(key, value):
+    use_key = '%s%s' % (ETCD_PROXY_BASE,key)
+    get_etcd_client().delete(use_key, value)
 
+
+def delete_etcd_dir(key=None, ignore_not_found=True):
+    use_key = '%s%s' % (ETCD_PROXY_BASE,key) if key else ETCD_PROXY_BASE
+    try:
+        get_etcd_client().delete(use_key,recursive=True, dir=True)
+    except KeyError:
+        #Ignore if key is not found
+        if not ignore_not_found:
+            raise
+
+
+def _add_node(upstream, node_name, endpoint):
+    set_etcd_key('/upstreams/{upstream}/endpoints/{node_name}'.format(
+        upstream=upstream, node_name=node_name
+    ), endpoint)
+
+
+def _add_acl(acl, cidr):
+    set_etcd_key('/global/acls/{acl}/cidr/src'.format(acl=acl), cidr)
+
+
+def _remove_node(upstream, node_name, endpoint):
+    rm_etcd_key('/upstreams/{upstream}/endpoints/{node_name}'.format(
+        upstream=upstream, node_name=node_name
+    ), endpoint)
+
+
+def _add_location(host, upstream, location_name='home', path='/',
+                  allowed_acls={'a1':'public'}, denied_acls={},
+                  force_ssl=False):
+    location_key='/hosts/{host}/locations/{location_name}'.format(
+        host=host, location_name=location_name)
+
+    for acl_key, acl_value in allowed_acls.iteritems():
+        set_etcd_key('{location_key}/acls/allowed/{acl_key}'.format(
+            location_key=location_key, acl_key=acl_key
+        ), acl_value)
+
+    for acl_key, acl_value in denied_acls.iteritems():
+        set_etcd_key('{location_key}/acls/denied/{acl_key}'.format(
+            location_key=location_key, acl_key=acl_key
+        ), acl_value)
+
+    set_etcd_key('{location_key}/path'.format(location_key=location_key), path)
+    set_etcd_key('{location_key}/force-ssl'.format(location_key=location_key),
+                 force_ssl)
+    set_etcd_key('{location_key}/upstream'.format(location_key=location_key),
+                 upstream)
+
+
+def _request_proxy(host, protocol='http', allow_redirects=False):
+    return requests.get(
+        '%s://localhost' % protocol,
+        timeout=HTTP_TEST_TIMEOUT,
+        headers={
+            'Host': host
+        },
+        verify=False, allow_redirects=allow_redirects)
