@@ -8,12 +8,19 @@ ____    ____ ______   _______      ___
 </pre>
 Yoda provides a dynamic proxy solution using haproxy, etcd and confd. 
 A lot of code/config has been ported from deis project. The etcd structure 
-has been adopted based on Vulcand project.
+has been adopted based on Vulcand project. The intent of this proxy is to replace
+totem proxy.
 
 ![Etcd Layout](architecture/etcd-layout.jpg) 
 
 ## Status
-**In Development**
+**In Testing**. Initial development complete. It is still not ready for production use.
+Etcd structure is more or less frozen.
+
+## Pre-Requesites
+- [Docker v1.1+](https://docs.docker.com/)
+- [etcd](https://coreos.com/using-coreos/etcd/)
+- [etcdctl](https://github.com/coreos/etcd/releases/) (or curl or any other client for setting etcd keys)
 
 ## Running Proxy
 
@@ -64,7 +71,7 @@ etcdctl set /yoda/upstreams/backend-abc.myapp.com/endpoints/node2 10.12.12.101:8
 
 ###Host and Location Information
 In order to register your hosts and location:
-- **Specify allowed, denied, acls**
+- **Specify allowed, denied, acls**  
   /yoda/hosts/{hostname}/locations/{location-name}/acls/allowed/{allowed-entry-name} {acl_name}
   /yoda/hosts/abc.myapp.com/locations/home/acls/denied/{denied-entry-name} {acl_name}  
   e.g.:  
@@ -74,14 +81,14 @@ etcdctl set /yoda/hosts/abc.myapp.com/locations/home/acls/allowed/a1 public
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/acls/denied/d1 global-black-list
 ```  
 
-- **Specify Proxy Path**
+- **Specify Proxy Path**  
   /yoda/hosts/{hostname}/locations/{location-name}/path {path_value}  
   e.g.:
 ```
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/path /
 ```  
 
-- **Specify Upstream for proxy**
+- **Specify Upstream for proxy**  
   /yoda/hosts/{hostname}/locations/{location-name}/upstream {upstream}
   e.g.:
 ```
