@@ -3,10 +3,10 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV ETCDCTL_VERSION v0.4.6
 
 RUN apt-get update
-RUN apt-get install -y haproxy/trusty-backports supervisor openssh-server nano
+RUN apt-get install -y haproxy/trusty-backports openssh-server nano
 
 #AWS Cli
-RUN pip install awscli==1.4.1
+RUN pip install awscli==1.4.1 supervisor==3.1.2
 
 #Syslog
 RUN echo '$PreserveFQDN on' | cat - /etc/rsyslog.conf > /tmp/rsyslog.conf && sudo mv /tmp/rsyslog.conf /etc/rsyslog.conf
@@ -29,10 +29,13 @@ ADD root/.ssh /root/.ssh
 RUN chmod -R 400 /root/.ssh/* && chmod  500 /root/.ssh & chown -R root:root /root/.ssh
 
 #Supervisor
+#Supervisor Config
+RUN mkdir -p /var/log/supervisor
 ADD etc/supervisor /etc/supervisor
+RUN ln -sf /etc/supervisor/supervisord.conf /etc/supervisord.conf
 
 #Confd
-ENV CONFD_VERSION 0.6.0-alpha3
+ENV CONFD_VERSION 0.6.2
 RUN curl -L https://github.com/kelseyhightower/confd/releases/download/v$CONFD_VERSION/confd-${CONFD_VERSION}-linux-amd64 -o /usr/local/bin/confd
 RUN chmod 555 /usr/local/bin/confd
 
@@ -53,9 +56,9 @@ ENV ETCD_URL 172.17.42.1:4001
 ENV ETCD_PROXY_BASE /yoda
 ENV PROXY_HOST yoda.local.sh
 ENV SYNC_CERTS false
-ENV S3_YODA_BUCKET yoda-mubucket
+ENV S3_YODA_BUCKET yoda-certs
 
 EXPOSE 22 80 443 8081
 
-ENTRYPOINT ["/usr/bin/supervisord"]
+ENTRYPOINT ["/usr/local/bin/supervisord"]
 CMD ["-n"]
