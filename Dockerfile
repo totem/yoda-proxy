@@ -5,7 +5,7 @@ ENV ETCDCTL_VERSION v0.4.6
 RUN apt-get update
 RUN apt-get install -y haproxy/trusty-backports openssh-server nano
 
-#AWS Cli
+#AWS Cli and Supervisor
 RUN pip install awscli==1.4.1 supervisor==3.1.2
 
 #Syslog
