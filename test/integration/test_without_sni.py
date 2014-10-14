@@ -1,17 +1,17 @@
 
-from . import setup_yoda, destroy_yoda, set_etcd_key, MockHttpServer, \
-    ETCD_PROXY_BASE, HTTP_TEST_TIMEOUT, _add_node, _add_location,\
-    _request_proxy, CleanupEtcdFolders, _remove_node, _add_acl
+from integration import setup_yoda, destroy_yoda, \
+    MockHttpServer, HTTP_TEST_TIMEOUT, _add_node, \
+    _add_location, _request_proxy, CleanupEtcdFolders, _remove_node, \
+    _add_acl, _add_upstream, _add_tcp_listener, MOCK_TCP_PORT
 from nose.tools import assert_equals
 
 import requests
 
 from time import sleep
 
-from urllib2 import urlopen, HTTPError
-
-
 __author__ = 'sukrit'
+
+PROXY_REFRESH_TIME = 5
 
 
 def setup_module():
@@ -26,14 +26,14 @@ def teardown_module():
 
 def test_http_port_bindings():
     resp = requests.get('http://127.0.0.1:80', timeout=HTTP_TEST_TIMEOUT)
-    #No Service available
+    # No Service available
     assert_equals(resp.status_code, 503)
 
 
 def test_https_port_bindings():
     resp = requests.get('https://127.0.0.1:443', timeout=HTTP_TEST_TIMEOUT,
                         verify=False)
-    #No Service available
+    # No Service available
     assert_equals(resp.status_code, 503)
 
 
@@ -47,11 +47,30 @@ def test_proxy_backend():
                 _add_node('test-proxy-backend', 'node2', node2)
                 _add_location('test-proxy-backend.abc.com',
                               'test-proxy-backend')
-                #Wait 5s for changes to apply
-                sleep(5)
+                # Wait for sometime for changes to apply
+                sleep(PROXY_REFRESH_TIME)
                 for protocol in ['http', 'https']:
                     resp = _request_proxy('test-proxy-backend.abc.com',
                                           protocol=protocol)
+                    assert_equals(resp.status_code, 200)
+
+
+def test_tcp_proxy_backend():
+    upstream = 'test-proxy-tcp-backend'
+    with CleanupEtcdFolders(
+            ['/upstreams/%s' % upstream,
+             '/listeners/tcp/test-tcp']):
+        with MockHttpServer() as node1:
+            with MockHttpServer() as node2:
+                _add_upstream(upstream, mode='tcp')
+                _add_tcp_listener('test-tcp', '*:%d' % MOCK_TCP_PORT, upstream)
+                _add_node(upstream, 'node1', node1)
+                _add_node(upstream, 'node2', node2)
+                # Wait 5s for changes to apply
+                sleep(PROXY_REFRESH_TIME)
+                for protocol in ['http']:
+                    resp = _request_proxy('localhost', protocol=protocol,
+                                          port=MOCK_TCP_PORT)
                     assert_equals(resp.status_code, 200)
 
 
@@ -63,8 +82,8 @@ def test_proxy_with_force_ssl():
             _add_node('test-proxy-force-ssl', 'node1', node1)
             _add_location('test-proxy-force-ssl.abc.com',
                           'test-proxy-force-ssl', force_ssl=True)
-            #Wait 5s for changes to apply
-            sleep(5)
+            # Wait for sometime for changes to apply
+            sleep(PROXY_REFRESH_TIME)
 
             resp = _request_proxy('test-proxy-force-ssl.abc.com')
             assert_equals(resp.status_code, 301)
@@ -78,25 +97,25 @@ def test_proxy_when_all_upstream_nodes_gets_removed():
              '/hosts/test-nodes-removal.abc.com']):
         with MockHttpServer() as node1:
 
-            #Given: Proxy with existing nodes
-            #First we add nodes
+            # Given: Proxy with existing nodes
+            # First we add nodes
             _add_node('test-nodes-removal', 'node1', node1)
             _add_location('test-nodes-removal.abc.com',
                           'test-nodes-removal')
 
-            #Wait 5s for changes to apply
-            sleep(5)
+            # Wait for sometime changes to apply
+            sleep(PROXY_REFRESH_TIME)
 
-            #Validate that proxy was setup
+            # Validate that proxy was setup
             resp = _request_proxy('test-nodes-removal.abc.com')
             assert_equals(resp.status_code, 200)
 
-            #When: I remove the backend nodes
+            # When: I remove the backend nodes
             _remove_node('test-nodes-removal', 'node1', node1)
-            #Wait 5s for changes to apply
-            sleep(5)
+            # Wait for sometime changes to apply
+            sleep(PROXY_REFRESH_TIME)
 
-            #Validate that No BE node is available for servicing request
+            # Validate that No BE node is available for servicing request
             resp = _request_proxy('test-nodes-removal.abc.com')
             assert_equals(resp.status_code, 503)
 
@@ -110,8 +129,8 @@ def test_proxy_with_denied_acls():
             _add_acl('test-denied-acl', '0.0.0.0/0')
             _add_location('test-denied-acl.abc.com', 'test-denied-acl',
                           denied_acls={'d1': 'test-denied-acl'})
-            #Wait 5s for changes to apply
-            sleep(5)
+            # Wait for sometime changes to apply
+            sleep(PROXY_REFRESH_TIME)
 
             resp = _request_proxy('test-denied-acl.abc.com')
             assert_equals(resp.status_code, 403)
@@ -126,8 +145,8 @@ def test_proxy_with_allowed_acls():
             _add_acl('test-allowed-acl', '255.255.255.255/32')
             _add_location('test-allowed-acl.abc.com', 'test-allowed-acl',
                           allowed_acls={'a1': 'test-allowed-acl'})
-            #Wait 5s for changes to apply
-            sleep(5)
+            # Wait for sometime changes to apply
+            sleep(PROXY_REFRESH_TIME)
 
             resp = _request_proxy('test-allowed-acl.abc.com')
             assert_equals(resp.status_code, 403)
