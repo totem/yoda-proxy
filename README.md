@@ -69,6 +69,12 @@ etcdctl set /yoda/upstreams/backend-abc.myapp.com/endpoints/node1 10.12.12.101:8
 etcdctl set /yoda/upstreams/backend-abc.myapp.com/endpoints/node2 10.12.12.101:80
 ```  
 
+If backend is of the type tcp and not http, also add the mode for the upstream.
+e.g:  
+```
+etcdctl set /yoda/upstreams/backend-abc.myapp.com/mode tcp
+```
+
 ###Host and Location Information
 In order to register your hosts and location:
 - **Specify allowed, denied, acls**  
@@ -100,6 +106,26 @@ simply execute command:
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/upstream backend-abc.myapp.com-v2
 ```
 
+
+###TCP Proxy Configuration
+In order to configure tcp based proxy, add tcp listeners for the proxy. For e.g.
+to add tcp listener for rabbitmq at port 5672, run commands:
+
+```
+etcdctl set /yoda/global/listeners/tcp/rabbitmq-main/bind 0.0.0.0:5672
+etcdctl set /yoda/global/listeners/tcp/rabbitmq-main/upstream backend-rabbitmq
+etcdctl set /yoda/global/listeners/tcp/rabbitmq-main/acls/allowed/a1 public
+etcdctl set /yoda/global/listeners/tcp/rabbitmq-main/acls/denied/d1 global-black-list
+```
+
+Ensure that backend use mode as *tcp* and not *http*. 
+```
+etcdctl set /yoda/upstreams/backend-rabbitmq/mode tcp
+```
+
+In addition, to access listeners from outside, ensure that you provide port mapping option in docker
+run command.
+e.g. -p 5672:5672
 
 ## Integration Test
 In order to execute integration test, you need  

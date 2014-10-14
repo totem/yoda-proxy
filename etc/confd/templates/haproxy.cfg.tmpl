@@ -1,27 +1,32 @@
 {{/* Template for CIDRS: Required for reuse in Http and Https frontends */}}
 {{define "CIDR_ACLS"}}{{if ls "/global/acls"}}{{ range $acl := gets "/global/acls/*/cidr/src" }}
     acl {{$acl.Key | parent | parent | base}} src {{$acl.Value}}
-{{end}}{{end}}{{end}}
+{{ end }}{{ end }}{{ end }}
 
 {{/* Global Black Listing */}}
 {{define "GLOBAL_BLACKLIST"}}{{if ls "/global/acls/global-black-list/cidr"}}
     http-request deny if global-black-list
-{{end}}{{end}}
+{{ end }}{{ end }}
+
+{{/* Global Black Listing (TCP) */}}
+{{define "GLOBAL_BLACKLIST_TCP"}}{{if ls "/global/acls/global-black-list/cidr"}}
+    tcp-request connection reject if global-black-list
+{{ end }}{{ end }}
 
 {{/* Template for use_backends. */}}
 {{define "USE_BACKENDS"}}{{ range $host := ls "/hosts" }}{{if printf "/hosts/%s/locations" $host | ls }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
 {{/* Do not include backends if upstream is empty or if it does not exist */}}
     {{ $upstream := printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv}}{{ $endpoints := printf "/upstreams/%s/endpoints" $upstream | ls}}
-    {{if and $upstream $endpoints}}use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if __host-{{$host}} __path-{{$host}}-{{$pathName}}{{end}}
-{{end}}{{end}}{{end}}{{end}}
+    {{if and $upstream $endpoints}}use_backend {{printf "/hosts/%s/locations/%s/upstream" $host $pathName | getv }} if __host-{{$host}} __path-{{$host}}-{{$pathName}}{{ end }}
+{{ end }}{{ end }}{{ end }}{{ end }}
 
 {{/* Template for force ssl */}}
 {{define "FORCE_SSL"}}{{ range $host := ls "/hosts" }}{{if printf "/hosts/%s/locations" $host | ls }}{{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
-    {{ if printf "/hosts/%s/locations/%s" $host $pathName | ls}}{{ if printf "/hosts/%s/locations/%s/force-ssl" $host $pathName | getv | eq "true"}}
+    {{ if printf "/hosts/%s/locations/%s" $host $pathName | ls}}{{ if printf "/hosts/%s/locations/%s/force-ssl" $host $pathName | ls}}{{ if printf "/hosts/%s/locations/%s/force-ssl" $host $pathName | getv | eq "true"}}
     #Force SSL for $host/$pathName
     redirect scheme https code 301 if !{ ssl_fc } __host-{{$host}} __path-{{$host}}-{{$pathName}}
-    {{end}}{{end}}
-{{ end }}{{ end }}{{end}}{{end}}
+    {{ end }}{{ end }}{{ end }}
+{{ end }}{{ end }}{{ end }}{{ end }}
 
 {{/* Template for Host ACLS and use_backend: Required for reuse in Http and Https frontends */}}
 {{define "HOST_ACLS"}}
@@ -32,16 +37,16 @@
 {{/* Deny Requests if host, path matches and any of cidrs matches */}}
     {{if printf "/hosts/%s/locations/%s/acls/denied" $host $pathName | ls }}
     #Denied ACL for {{$host}}/{{$pathName}}
-    http-request deny if {{range printf "/hosts/%s/locations/%s/acls/denied/*" $host $pathName  | getvs}} __host-{{$host}} __path-{{$host}}-{{$pathName}} {{.}} or{{end}}
-    {{end}}
+    http-request deny if {{range printf "/hosts/%s/locations/%s/acls/denied/*" $host $pathName  | getvs}} __host-{{$host}} __path-{{$host}}-{{$pathName}} {{.}} or{{ end }}
+    {{ end }}
 
     {{if printf "/hosts/%s/locations/%s/acls/allowed" $host $pathName | ls }}
 {{/* Deny Requests if host, path matches but cidr does not */}}
     #Allowed ACLs for {{$host}}/{{$pathName}}
-    http-request deny if __host-{{$host}} __path-{{$host}}-{{$pathName}} {{range printf "/hosts/%s/locations/%s/acls/allowed/*" $host $pathName | getvs}}!{{.}}{{end}}
-    {{end}}
+    http-request deny if __host-{{$host}} __path-{{$host}}-{{$pathName}} {{range printf "/hosts/%s/locations/%s/acls/allowed/*" $host $pathName | getvs}}!{{.}}{{ end }}
+    {{ end }}
     {{ end }}{{ end }}
-{{end}}
+{{ end }}
 
 
 
@@ -102,7 +107,7 @@ frontend http-in
     #Use Backends
     {{ template "USE_BACKENDS" }}
     use_backend admin if host-{{ getv "/global/hostname" }}
-{{end}}
+{{ end }}
 
 {{ if ls "/global/listeners/https" }}
 #Https frontend
@@ -130,16 +135,43 @@ frontend https-in
     option forwardfor
 {{ end }}
 
+#TCP Frontends
+{{ range $listener := ls "/global/listeners/tcp" }}{{ $listener_path := printf "/global/listeners/tcp/%s" $listener}}{{if printf "%s/bind" $listener_path | ls }}
+frontend {{ $listener }}
+    bind {{ printf "%s/bind" $listener_path  | getv }}
+    mode tcp
+    option tcplog
+
+    #CIDR ACLs
+    {{ template "CIDR_ACLS" }}
+
+    #Global Blacklist
+    {{ template "GLOBAL_BLACKLIST_TCP" }}
+
+    {{ if printf "%s/acls/denied" $listener_path  | ls }}
+    tcp-request  connection reject if {{range printf "%s/acls/denied/*" $listener_path | getvs}} {{.}} or{{ end }}
+    {{ end }}
+
+    {{ if printf "%s/acls/allowed" $listener_path  | ls }}
+    tcp-request  connection reject if {{range printf "%s/acls/allowed/*" $listener_path | getvs }}!{{.}}{{ end }}
+    {{ end }}
+
+    {{ if printf "%s/upstream" $listener_path  | ls}}{{ $upstream := printf "%s/upstream" $listener_path | getv }}
+    {{ if printf "/upstreams/%s" $upstream | ls }}{{ if printf "/upstreams/%s/endpoints" $upstream | ls }}use_backend {{ $upstream }}{{ end }}{{ end }}
+    {{ end }}
+
+{{ end }}{{ end }}
+
 
 #Define all the backends
-{{ range $upstream := ls "/upstreams" }}{{if printf "/upstreams/%s/endpoints" $upstream | ls }}
-backend {{$upstream}}
+{{ range $upstream := ls "/upstreams" }}{{ if printf "/upstreams/%s/endpoints" $upstream | ls }}
+backend {{ $upstream }}
    balance roundrobin
-   mode http
+   mode {{ if printf "/upstreams/%s/mode" $upstream | ls }}{{printf "/upstreams/%s/mode" $upstream | getv}}{{ else }}http{{ end }}
    {{ range $endpoint := printf "/upstreams/%s/endpoints/*" $upstream | gets }}{{ $endpointName := $endpoint.Key | parent | base }}
-   server {{$endpointName}} {{$endpoint.Value}}  check
-   {{end}}
-{{ end }}{{end}}
+   server {{ $endpointName }} {{ $endpoint.Value }}  check
+   {{ end }}
+{{ end }}{{ end }}
 
 {{ if ls "/global/listeners/admin" }}
 listen admin
@@ -148,8 +180,8 @@ listen admin
     stats hide-version
     stats realm Haproxy\ Statistics
     stats uri /
-{{end}}
+{{ end }}
 
 {{ if ls "/global/control" }}
 ##Reload Control Flag: {{ getv "/global/control/reload" }}
-{{end}}
+{{ end }}
