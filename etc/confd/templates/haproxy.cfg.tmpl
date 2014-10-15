@@ -153,7 +153,7 @@ frontend {{ $listener }}
     {{ end }}
 
     {{ if printf "%s/acls/allowed" $listener_path  | ls }}
-    tcp-request  connection reject if {{range printf "%s/acls/allowed/*" $listener_path | getvs }}!{{.}}{{ end }}
+    tcp-request  connection reject if {{range printf "%s/acls/allowed/*" $listener_path | getvs }}!{{.}} {{ end }}
     {{ end }}
 
     {{ if printf "%s/upstream" $listener_path  | ls}}{{ $upstream := printf "%s/upstream" $listener_path | getv }}
