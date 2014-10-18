@@ -25,6 +25,6 @@ $ETCDCTL get $ETCD_PROXY_BASE/global/acls/global-black-list/cidr/src || $ETCDCTL
 $ETCDCTL get $ETCD_PROXY_BASE/syslog/host || $ETCDCTL set $ETCD_PROXY_BASE/syslog/host ""
 
 
-sed -i -e "s/127.0.0.1[:]4001/$ETCD_URL/g" -e "s|/yoda|$ETCD_PROXY_BASE|g" /etc/confd/confd.toml
+sed -i -e "s/172.17.42.1[:]4001/$ETCD_URL/g" -e "s|/yoda|$ETCD_PROXY_BASE|g" /etc/confd/confd.toml
 #sed -i -e "s|/yoda|$ETCD_PROXY_BASE|g" /etc/confd/conf.d/haproxy.toml
 confd

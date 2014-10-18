@@ -2,7 +2,7 @@ confdir  = "/etc/confd"
 interval = 5
 prefix   = "/yoda"
 nodes = [
-  "127.0.0.1:4001",
+  "172.17.42.1:4001",
 ]
 quiet = true
 debug = false
