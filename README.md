@@ -8,12 +8,19 @@ ____    ____ ______   _______      ___
 </pre>
 Yoda provides a dynamic proxy solution using haproxy, etcd and confd. 
 A lot of code/config has been ported from deis project. The etcd structure 
-has been adopted based on Vulcand project.
+has been adopted based on Vulcand project. The intent of this proxy is to replace
+totem proxy.
 
 ![Etcd Layout](architecture/etcd-layout.jpg) 
 
 ## Status
-**In Development**
+**In Testing**. Initial development complete. It is still not ready for production use.
+Etcd structure is more or less frozen.
+
+## Pre-Requesites
+- [Docker v1.1+](https://docs.docker.com/)
+- [etcd](https://coreos.com/using-coreos/etcd/)
+- [etcdctl](https://github.com/coreos/etcd/releases/) (or curl or any other client for setting etcd keys)
 
 ## Running Proxy
 
@@ -29,7 +36,8 @@ In order to run with SNI certificates, you need to have Amazon S3 account with
 read permission on ssl certificates bucket. Your S3 certificates should be 
 grouped together with key prefix (or fodler name "certs.d").  
 
-E.g.:  
+E.g.:
+yoda-s3-bucket/certs.d/default.pem   (Note: Default cert is mandatory)
 yoda-s3-bucket/certs.d/certificate1.pem  
 yoda-s3-bucket/certs.d/certificate2.pem  
 
@@ -68,15 +76,36 @@ etcdctl set /yoda/upstreams/backend-abc.myapp.com/mode tcp
 ```
 
 ###Host and Location Information
-In order to register your hosts and location, run commands:
+In order to register your hosts and location:
+- **Specify allowed, denied, acls**  
+  /yoda/hosts/{hostname}/locations/{location-name}/acls/allowed/{allowed-entry-name} {acl_name}
+  /yoda/hosts/abc.myapp.com/locations/home/acls/denied/{denied-entry-name} {acl_name}  
+  e.g.:  
 
 ```
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/acls/allowed/a1 public
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/acls/denied/d1 global-black-list
+```  
+
+- **Specify Proxy Path**  
+  /yoda/hosts/{hostname}/locations/{location-name}/path {path_value}  
+  e.g.:
+```
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/path /
-etcdctl set /yoda/hosts/abc.myapp.com/locations/home/force-ssl false
+```  
+
+- **Specify Upstream for proxy**  
+  /yoda/hosts/{hostname}/locations/{location-name}/upstream {upstream}
+  e.g.:
+```
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/upstream backend-abc.myapp.com
 ```
+Once you are ready to switch proxy to new upstream for doing blue-green deploys, 
+simply execute command:  
+```
+etcdctl set /yoda/hosts/abc.myapp.com/locations/home/upstream backend-abc.myapp.com-v2
+```
+
 
 ###TCP Proxy Configuration
 In order to configure tcp based proxy, add tcp listeners for the proxy. For e.g.
