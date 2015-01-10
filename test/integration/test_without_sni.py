@@ -26,15 +26,15 @@ def teardown_module():
 
 def test_http_port_bindings():
     resp = requests.get('http://127.0.0.1:80', timeout=HTTP_TEST_TIMEOUT)
-    # No Service available
-    assert_equals(resp.status_code, 503)
+    # Access denied (by default)
+    assert_equals(resp.status_code, 403)
 
 
 def test_https_port_bindings():
     resp = requests.get('https://127.0.0.1:443', timeout=HTTP_TEST_TIMEOUT,
                         verify=False)
-    # No Service available
-    assert_equals(resp.status_code, 503)
+    # Access denied (by default)
+    assert_equals(resp.status_code, 403)
 
 
 def test_proxy_backend():
@@ -149,4 +149,36 @@ def test_proxy_with_allowed_acls():
             sleep(PROXY_REFRESH_TIME)
 
             resp = _request_proxy('test-allowed-acl.abc.com')
+            assert_equals(resp.status_code, 403)
+
+
+def test_proxy_with_multiple_locations():
+    with CleanupEtcdFolders(
+            ['/upstreams/test-multiple-loc',
+             '/global/acls/test-multiple-loc-acl1',
+             '/hosts/test-multiple-loc.abc.com']):
+        with MockHttpServer() as node1:
+            _add_node('test-multiple-loc', 'node1', node1)
+            _add_acl('test-multiple-loc-acl1', '255.255.255.255/32')
+            _add_location('test-multiple-loc.abc.com',
+                          'test-multiple-loc', path='/', location_name='-',
+                          allowed_acls={'a1': 'test-multiple-loc-acl1'})
+            _add_location('test-multiple-loc.abc.com',
+                          'test-multiple-loc', path='/secure',
+                          location_name='secure',
+                          allowed_acls={'public': 'public'})
+            # Wait for sometime changes to apply
+            sleep(PROXY_REFRESH_TIME)
+
+            # When I access secure path
+            resp = _request_proxy('test-multiple-loc.abc.com', path='/secure')
+
+            # Then:  Access is granted (but 404 is returned as page does not
+            # exist)
+            assert_equals(resp.status_code, 404)
+
+            # When I access un-seure path
+            resp = _request_proxy('test-multiple-loc.abc.com', path='/')
+
+            # Then:  Access is denied (No acl to allow this path)
             assert_equals(resp.status_code, 403)
