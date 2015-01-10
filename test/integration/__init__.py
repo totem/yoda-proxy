@@ -161,13 +161,14 @@ def _add_location(host, upstream, location_name='home', path='/',
                  upstream)
 
 
-def _request_proxy(host, protocol='http', allow_redirects=False, port=None):
+def _request_proxy(host, protocol='http', allow_redirects=False, port=None,
+                   path='/'):
     port = port or {
         'http': 80,
         'https': 443,
     }[protocol]
     return requests.get(
-        '%s://localhost:%d' % (protocol, port),
+        '%s://localhost:%d%s' % (protocol, port, path),
         timeout=HTTP_TEST_TIMEOUT,
         headers={
             'Host': host

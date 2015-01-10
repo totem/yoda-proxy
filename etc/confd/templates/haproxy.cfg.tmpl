@@ -31,9 +31,11 @@
 {{/* Template for Host ACLS and use_backend: Required for reuse in Http and Https frontends */}}
 {{define "HOST_ACLS"}}
     {{ range $host := ls "/hosts" }}
+    #Host ACL for host:{{$host}}
     acl __host-{{$host}} hdr_dom(host) -i {{$host}}
     {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
-    acl __path-{{$host}}-{{$pathName}} path_beg {{parent $path.Value}}
+    #Path ACL for host:{{$host}} and path:{{$path}}
+    acl __path-{{$host}}-{{$pathName}} path_beg {{$path.Value}}
 {{/* Deny Requests if host, path matches and any of cidrs matches */}}
     {{if printf "/hosts/%s/locations/%s/acls/denied" $host $pathName | ls }}
     #Denied ACL for {{$host}}/{{$pathName}}
@@ -43,9 +45,10 @@
     {{if printf "/hosts/%s/locations/%s/acls/allowed" $host $pathName | ls }}
 {{/* Deny Requests if host, path matches but cidr does not */}}
     #Allowed ACLs for {{$host}}/{{$pathName}}
-    http-request deny if __host-{{$host}} __path-{{$host}}-{{$pathName}} {{range printf "/hosts/%s/locations/%s/acls/allowed/*" $host $pathName | getvs}}!{{.}}{{ end }}
-    {{ end }}
-    {{ end }}{{ end }}
+    {{range printf "/hosts/%s/locations/%s/acls/allowed/*" $host $pathName | getvs}}
+    http-request allow if __host-{{$host}} __path-{{$host}}-{{$pathName}} {{.}}
+    {{ end }}{{ end }}{{end}}{{end}}
+    http-request deny
 {{ end }}
 
 
