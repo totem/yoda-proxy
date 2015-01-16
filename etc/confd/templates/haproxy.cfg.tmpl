@@ -146,8 +146,10 @@ frontend {{ $listener }}
     bind {{ printf "%s/bind" $listener_path  | getv }}
     mode tcp
     option tcplog
+    timeout connect 20s
     timeout client 3h
     timeout server 3h
+    retires 10
 
     #CIDR ACLs
     {{ template "CIDR_ACLS" }}
