@@ -149,7 +149,7 @@ frontend {{ $listener }}
     timeout connect 20s
     timeout client 3h
     timeout server 3h
-    retires 10
+    retries 30
 
     #CIDR ACLs
     {{ template "CIDR_ACLS" }}
