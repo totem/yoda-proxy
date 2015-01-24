@@ -177,6 +177,9 @@ frontend {{ $listener }}
 backend {{ $upstream }}
    balance roundrobin
    mode {{ if printf "/upstreams/%s/mode" $upstream | ls }}{{printf "/upstreams/%s/mode" $upstream | getv}}{{ else }}http{{ end }}
+   {{ $health := printf "/upstreams/%s/health/uri" $upstream }} {{ $health_uri := printf "%s/uri" $health }} {{ $health_timeout := printf "%s/timeout" $health }}
+   {{ if $health_uri | ls }}option httpchk {{ $health_uri | getv }}{{ end }}
+   {{ if $health_timeout | ls }}timeout check {{ $health_timeout | getv }}{{ end }}
    {{ range $endpoint := printf "/upstreams/%s/endpoints/*" $upstream | gets }}{{ $endpointName := $endpoint.Key | parent | base }}
    server {{ $endpointName }} {{ $endpoint.Value }}  check
    {{ end }}

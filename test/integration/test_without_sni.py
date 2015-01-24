@@ -16,7 +16,6 @@ PROXY_REFRESH_TIME = 5
 
 def setup_module():
     setup_yoda()
-    pass
 
 
 def teardown_module():
@@ -51,6 +50,25 @@ def test_proxy_backend():
                 sleep(PROXY_REFRESH_TIME)
                 for protocol in ['http', 'https']:
                     resp = _request_proxy('test-proxy-backend.abc.com',
+                                          protocol=protocol)
+                    assert_equals(resp.status_code, 200)
+
+
+def test_backend_with_health_check():
+    with CleanupEtcdFolders(
+            ['/upstreams/test-health-check',
+             '/hosts/test-health-check.abc.com']):
+        with MockHttpServer() as node1:
+            with MockHttpServer() as node2:
+                _add_upstream('test-health-check', health_uri='/',
+                              health_timeout='2s')
+                _add_node('test-health-check', 'node1', node1)
+                _add_location('test-health-check.abc.com',
+                              'test-health-check')
+                # Wait for sometime for changes to apply
+                sleep(PROXY_REFRESH_TIME)
+                for protocol in ['http', 'https']:
+                    resp = _request_proxy('test-health-check.abc.com',
                                           protocol=protocol)
                     assert_equals(resp.status_code, 200)
 
