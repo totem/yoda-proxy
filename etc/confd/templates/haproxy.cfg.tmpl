@@ -182,7 +182,7 @@ backend {{ $upstream }}
    {{ if $health_uri | ls }}option httpchk GET {{ $health_uri | getv }}{{ end }}
    {{ if $health_timeout | ls }}timeout check {{ $health_timeout | getv }}{{ end }}
    {{ range $endpoint := printf "/upstreams/%s/endpoints/*" $upstream | gets }}{{ $endpointName := $endpoint.Key | parent | base }}
-   server {{ $endpointName }} {{ $endpoint.Value }}  check inter {{ if $health_interval | ls }}{{$health_interval}}{{ else }}2m{{ end }}
+   server {{ $endpointName }} {{ $endpoint.Value }}  check inter {{ if $health_interval | ls }}{{$health_interval | getv}}{{ else }}2m{{ end }}
    {{ end }}
 {{ end }}{{ end }}
 

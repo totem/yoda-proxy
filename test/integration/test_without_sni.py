@@ -59,18 +59,17 @@ def test_backend_with_health_check():
             ['/upstreams/test-health-check',
              '/hosts/test-health-check.abc.com']):
         with MockHttpServer() as node1:
-            with MockHttpServer() as node2:
-                _add_upstream('test-health-check', health_uri='/',
-                              health_timeout='2s')
-                _add_node('test-health-check', 'node1', node1)
-                _add_location('test-health-check.abc.com',
-                              'test-health-check')
-                # Wait for sometime for changes to apply
-                sleep(PROXY_REFRESH_TIME)
-                for protocol in ['http', 'https']:
-                    resp = _request_proxy('test-health-check.abc.com',
-                                          protocol=protocol)
-                    assert_equals(resp.status_code, 200)
+            _add_upstream('test-health-check', health_uri='/',
+                          health_timeout='2s', health_interval='1m')
+            _add_node('test-health-check', 'node1', node1)
+            _add_location('test-health-check.abc.com',
+                          'test-health-check')
+            # Wait for sometime for changes to apply
+            sleep(PROXY_REFRESH_TIME)
+            for protocol in ['http', 'https']:
+                resp = _request_proxy('test-health-check.abc.com',
+                                      protocol=protocol)
+                assert_equals(resp.status_code, 200)
 
 
 def test_tcp_proxy_backend():
