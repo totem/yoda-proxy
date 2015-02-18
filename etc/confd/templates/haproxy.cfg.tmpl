@@ -77,6 +77,7 @@ defaults
     option	httplog
     option	dontlognull
     option tcpka
+    option redispatch
     timeout connect 5s
     timeout client  615s
     timeout server  615s
@@ -145,6 +146,10 @@ frontend {{ $listener }}
     bind {{ printf "%s/bind" $listener_path  | getv }}
     mode tcp
     option tcplog
+    timeout connect 20s
+    timeout client 3h
+    timeout server 3h
+    retries 30
 
     #CIDR ACLs
     {{ template "CIDR_ACLS" }}
@@ -172,8 +177,12 @@ frontend {{ $listener }}
 backend {{ $upstream }}
    balance roundrobin
    mode {{ if printf "/upstreams/%s/mode" $upstream | ls }}{{printf "/upstreams/%s/mode" $upstream | getv}}{{ else }}http{{ end }}
+   {{ $health := printf "/upstreams/%s/health" $upstream }} {{ $health_uri := printf "%s/uri" $health }} {{ $health_timeout := printf "%s/timeout" $health }}
+   {{ $health_interval := printf "%s/interval" $health }}
+   {{ if $health_uri | ls }}option httpchk GET {{ $health_uri | getv }}{{ end }}
+   {{ if $health_timeout | ls }}timeout check {{ $health_timeout | getv }}{{ end }}
    {{ range $endpoint := printf "/upstreams/%s/endpoints/*" $upstream | gets }}{{ $endpointName := $endpoint.Key | parent | base }}
-   server {{ $endpointName }} {{ $endpoint.Value }}  check
+   server {{ $endpointName }} {{ $endpoint.Value }}  check inter {{ if $health_interval | ls }}{{$health_interval | getv}}{{ else }}2m{{ end }}
    {{ end }}
 {{ end }}{{ end }}
 

@@ -110,9 +110,19 @@ def _add_node(upstream, node_name, endpoint):
     ), endpoint)
 
 
-def _add_upstream(upstream, mode='http'):
+def _add_upstream(upstream, mode='http', health_uri=None, health_timeout=None,
+                  health_interval=None):
     set_etcd_key('/upstreams/{upstream}/mode'.format(upstream=upstream),
                  mode)
+    if health_uri:
+        set_etcd_key('/upstreams/{upstream}/health/uri'
+                     .format(upstream=upstream), health_uri)
+    if health_timeout:
+        set_etcd_key('/upstreams/{upstream}/health/timeout'
+                     .format(upstream=upstream), health_timeout)
+    if health_interval:
+        set_etcd_key('/upstreams/{upstream}/health/interval'
+                     .format(upstream=upstream), health_interval)
 
 
 def _add_tcp_listener(name, bind, upstream, allowed_acls={}, denied_acls={}):
