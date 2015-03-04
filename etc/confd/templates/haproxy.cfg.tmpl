@@ -32,7 +32,7 @@
 {{define "HOST_ACLS"}}
     {{ range $host := ls "/hosts" }}
     #Host ACL for host:{{$host}}
-    acl __host-{{$host}} hdr_dom(host) -i {{$host}}
+    acl __host-{{$host}} hdr_dom(host) -i -m str {{$host}} {{ if printf "/hosts/%s/aliases" $host | ls }}{{range $alias := printf "/hosts/%s/aliases/*" $host | getvs }}{{$alias}} {{ end }}{{ end }}
     {{ range $path := printf "/hosts/%s/locations/*/path" $host | gets}}{{ $pathName := $path.Key | parent | base }}
     #Path ACL for host:{{$host}} and path:{{$path}}
     acl __path-{{$host}}-{{$pathName}} path_beg {{$path.Value}}
@@ -101,7 +101,7 @@ frontend http-in
     {{ template "GLOBAL_BLACKLIST" }}
 
     #Host ACLs
-    acl host-{{ getv "/global/hostname" }} hdr_dom(host) -i {{ getv "/global/hostname" }}
+    acl host-{{ getv "/global/hostname" }} hdr_dom(host) -i -m str {{ getv "/global/hostname" }}
 
     #Dynamic ACLs
     {{ template "HOST_ACLS" }}
@@ -122,6 +122,9 @@ frontend https-in
 
     #Global Blacklist
     {{ template "GLOBAL_BLACKLIST" }}
+
+    #Host ACLs
+    acl host-{{ getv "/global/hostname" }} hdr_dom(host) -i -m str {{ getv "/global/hostname" }}
 
     #Dynamic ACLs
     {{ template "HOST_ACLS" }}

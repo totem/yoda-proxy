@@ -75,7 +75,6 @@ class CleanupEtcdFolders:
 def destroy_yoda():
     call('%s stop yoda-integration' % DOCKER, shell=True)
     call('%s rm yoda-integration' % DOCKER, shell=True)
-    call('%s rmi  totem/yoda-integration' % DOCKER, shell=True)
     delete_etcd_dir()
     pass
 
@@ -150,7 +149,7 @@ def _remove_node(upstream, node_name, endpoint):
 
 def _add_location(host, upstream, location_name='home', path='/',
                   allowed_acls={'a1': 'public'}, denied_acls={},
-                  force_ssl=False):
+                  force_ssl=False, aliases={}):
     location_key = '/hosts/{host}/locations/{location_name}'.format(
         host=host, location_name=location_name)
 
@@ -169,6 +168,9 @@ def _add_location(host, upstream, location_name='home', path='/',
                  force_ssl)
     set_etcd_key('{location_key}/upstream'.format(location_key=location_key),
                  upstream)
+    for name, alias in aliases.iteritems():
+        set_etcd_key('/hosts/{host}/aliases/{name}'.format(
+            host=host, name=name), alias)
 
 
 def _request_proxy(host, protocol='http', allow_redirects=False, port=None,
