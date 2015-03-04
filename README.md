@@ -106,6 +106,12 @@ simply execute command:
 etcdctl set /yoda/hosts/abc.myapp.com/locations/home/upstream backend-abc.myapp.com-v2
 ```
 
+- **Specify Additional hosts (aliases) for proxy**  
+  /yoda/hosts/{hostname}/aliases/{alias-name}  {alias}
+  e.g.:
+```
+etcdctl set /yoda/hosts/abc.myapp.com/aliases/www www.myapp.com
+```
 
 ###TCP Proxy Configuration
 In order to configure tcp based proxy, add tcp listeners for the proxy. For e.g.
