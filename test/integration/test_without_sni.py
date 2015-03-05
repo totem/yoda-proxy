@@ -108,6 +108,28 @@ def test_proxy_with_force_ssl():
                           'https://test-proxy-force-ssl.abc.com/')
 
 
+def test_proxy_aliases():
+    with CleanupEtcdFolders(
+            ['/upstreams/test-proxy-aliases',
+             '/hosts/test-proxy-aliases.abc.com']):
+        with MockHttpServer() as node1:
+            with MockHttpServer() as node2:
+                _add_node('test-proxy-aliases', 'node1', node1)
+                _add_location(
+                    'test-proxy-aliases.abc.com', 'test-proxy-aliases',
+                    aliases={
+                        'www': 'www.test-proxy-aliases.abc.com'
+                    }
+                )
+                # Wait for sometime for changes to apply
+                sleep(PROXY_REFRESH_TIME)
+                resp = _request_proxy('test-proxy-aliases.abc.com')
+                assert_equals(resp.status_code, 200)
+
+                resp = _request_proxy('www.test-proxy-aliases.abc.com')
+                assert_equals(resp.status_code, 200)
+
+
 def test_proxy_when_all_upstream_nodes_gets_removed():
     with CleanupEtcdFolders(
             ['/upstreams/test-nodes-removal',
