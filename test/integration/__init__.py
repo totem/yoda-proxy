@@ -11,7 +11,7 @@ import requests
 from threading import Thread
 
 DOCKER = os.environ.get('DOCKER_CMD', 'docker -H 127.0.0.1:8283')
-ETCD_PROXY_BASE = os.environ.get('ETCD_PROXY_BASE', '/yoda-integration')
+ETCD_PROXY_BASE = os.environ.get('ETCD_PROXY_BASE', '/test-yoda-integration')
 ETCD_HOST = os.environ.get('ETCD_HOST', 'localhost')
 ETCD_PORT = int(os.environ.get('ETCD_PORT', '4001'))
 MOCK_TCP_PORT = int(os.environ.get('MOCK_TCP_PORT', '31325'))
@@ -33,6 +33,7 @@ def setup_yoda():
     build_yoda()
     check_call(
         '{DOCKER} run --name yoda-integration -d -P -p 80:80 -p 443:443 '
+        '-v /dev/log:/dev/log '
         '-p {MOCK_TCP_PORT}:{MOCK_TCP_PORT} -e ETCD_PROXY_BASE'
         '={ETCD_PROXY_BASE} -h yoda-integration-{USER} totem/yoda-integration'
         .format(DOCKER=DOCKER, ETCD_PROXY_BASE=ETCD_PROXY_BASE,

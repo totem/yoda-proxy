@@ -47,7 +47,7 @@ Private Key, Public Key, CA Chain (In this order).
 Once ssl bucket is setup, simply run command below to start your proxy:  
 
 ```
-sudo docker run --name yoda --rm -t -i -P -p 80:80 -p 443:443 -p 2022:22 -e AWS_ACCESS_KEY_ID=<<S3_ACCESS_KEY_ID>> -e AWS_SECRET_ACCESS_KEY=<<S3_SECRET_KEY>> -e S3_YODA_BUCKET=<<S3_BUCKET_NAME>> -e SYNC_CERTS=true totem/yoda-proxy
+sudo docker run --name yoda --rm -t -i -v /dev/log:/dev/log -P -p 80:80 -p 443:443 -p 2022:22 -e AWS_ACCESS_KEY_ID=<<S3_ACCESS_KEY_ID>> -e AWS_SECRET_ACCESS_KEY=<<S3_SECRET_KEY>> -e S3_YODA_BUCKET=<<S3_BUCKET_NAME>> -e SYNC_CERTS=true totem/yoda-proxy
 ```
 
 ## ETCD Configuration
