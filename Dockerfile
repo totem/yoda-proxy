@@ -3,14 +3,10 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV ETCDCTL_VERSION v0.4.6
 
 RUN apt-get update && \
-    apt-get install -y haproxy/trusty-backports openssh-server nano
+    apt-get install -y haproxy/trusty-backports nano
 
 #AWS Cli and Supervisor
 RUN pip install awscli==1.4.1 supervisor==3.1.2
-
-#Syslog
-RUN echo '$PreserveFQDN on' | cat - /etc/rsyslog.conf > /tmp/rsyslog.conf && sudo mv /tmp/rsyslog.conf /etc/rsyslog.conf && \
-    sed -i 's~^#\$ModLoad immark\(.*\)$~$ModLoad immark \1~' /etc/rsyslog.conf
 
 #Haproxy
 RUN mkdir -p /run/haproxy && chown -R haproxy:haproxy /run/haproxy
@@ -23,13 +19,6 @@ RUN curl -L https://github.com/coreos/etcd/releases/download/$ETCDCTL_VERSION/et
     cp -f /tmp/etcd-$ETCDCTL_VERSION-linux-amd64/etcdctl /usr/local/bin && \
     rm -rf /tmp/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz
 
-##SSH Server (To troubleshoot issues with image factory)
-RUN mkdir /var/run/sshd
-ADD root/.ssh/authorized_keys /root/.ssh/authorized_keys
-RUN chmod -R 400 /root/.ssh/* && \
-    chmod  500 /root/.ssh && \
-    chown -R root:root /root/.ssh
-
 #Supervisor
 #Supervisor Config
 RUN mkdir -p /var/log/supervisor && \
@@ -39,7 +28,7 @@ ADD etc/supervisor/supervisord.conf /etc/supervisor/
 RUN ln -sf /etc/supervisor/supervisord.conf /etc/supervisord.conf
 
 #Confd
-ENV CONFD_VERSION 0.6.3
+ENV CONFD_VERSION 0.7.1
 RUN curl -L https://github.com/kelseyhightower/confd/releases/download/v$CONFD_VERSION/confd-${CONFD_VERSION}-linux-amd64 -o /usr/local/bin/confd && \
     chmod 555 /usr/local/bin/confd
 
@@ -61,8 +50,9 @@ ENV ETCD_PROXY_BASE /yoda
 ENV PROXY_HOST yoda.local.sh
 ENV SYNC_CERTS false
 ENV S3_YODA_BUCKET yoda-certs
+ENV LOG_IDENTIFIER yoda-proxy
 
-EXPOSE 22 80 443 8081
+EXPOSE 80 443 8081
 
 ENTRYPOINT ["/usr/local/bin/supervisord"]
 CMD ["-n"]

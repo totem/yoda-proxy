@@ -21,10 +21,6 @@ $ETCDCTL get $LISTENER_PATH/admin/bind || $ETCDCTL set $LISTENER_PATH/admin/bind
 $ETCDCTL get $ETCD_PROXY_BASE/global/acls/public/cidr/src || $ETCDCTL set $ETCD_PROXY_BASE/global/acls/public/cidr/src "0.0.0.0/0"
 $ETCDCTL get $ETCD_PROXY_BASE/global/acls/global-black-list/cidr/src || $ETCDCTL set $ETCD_PROXY_BASE/global/acls/global-black-list/cidr/src ""
 
-#Syslog ETCD Entries
-$ETCDCTL get $ETCD_PROXY_BASE/syslog/host || $ETCDCTL set $ETCD_PROXY_BASE/syslog/host ""
-
-
-sed -i -e "s/172.17.42.1[:]4001/$ETCD_URL/g" -e "s|/yoda|$ETCD_PROXY_BASE|g" /etc/confd/confd.toml
+sed -i -e "s/172.17.42.1[:]4001/$ETCD_URL/g" -e "s|/yoda|$ETCD_PROXY_BASE|" /etc/confd/confd.toml
 #sed -i -e "s|/yoda|$ETCD_PROXY_BASE|g" /etc/confd/conf.d/haproxy.toml
 confd
