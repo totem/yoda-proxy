@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get install -y haproxy/trusty-backports nano
 
 #AWS Cli and Supervisor
-RUN pip install awscli==1.4.1 supervisor==3.1.2
+RUN pip install awscli==1.4.1 supervisor==3.1.2 supervisor-stdout
 
 #Haproxy
 RUN mkdir -p /run/haproxy && chown -R haproxy:haproxy /run/haproxy
