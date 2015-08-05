@@ -133,6 +133,13 @@ In addition, to access listeners from outside, ensure that you provide port mapp
 run command.
 e.g. -p 5672:5672
 
+In order to have ports dynamically allocated on the host , without having a need of port mapping, host network can be utilized (--net=host option)
+
+e.g: 
+```
+sudo docker run --name yoda --rm --net=host -t -i -v /dev/log:/dev/log -P totem/yoda-proxy
+```
+
 ## Integration Test
 In order to execute integration test, you need  
 - python 2.7.x  

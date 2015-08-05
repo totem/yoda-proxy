@@ -15,6 +15,7 @@ ETCD_PROXY_BASE = os.environ.get('ETCD_PROXY_BASE', '/test-yoda-integration')
 ETCD_HOST = os.environ.get('ETCD_HOST', 'localhost')
 ETCD_PORT = int(os.environ.get('ETCD_PORT', '4001'))
 MOCK_TCP_PORT = int(os.environ.get('MOCK_TCP_PORT', '31325'))
+HOST_IP = os.environ.get('HOST_IP', '127.0.0.1')
 HTTP_TEST_TIMEOUT = 10  # In seconds
 MODULE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -32,10 +33,10 @@ def setup_yoda_sni():
 def setup_yoda():
     build_yoda()
     check_call(
-        '{DOCKER} run --name yoda-integration -d -P -p 80:80 -p 443:443 '
+        '{DOCKER} run --name yoda-integration -d --net=host '
         '-v /dev/log:/dev/log '
-        '-p {MOCK_TCP_PORT}:{MOCK_TCP_PORT} -e ETCD_PROXY_BASE'
-        '={ETCD_PROXY_BASE} -h yoda-integration-{USER} totem/yoda-integration'
+        '-e ETCD_PROXY_BASE'
+        '={ETCD_PROXY_BASE} totem/yoda-integration'
         .format(DOCKER=DOCKER, ETCD_PROXY_BASE=ETCD_PROXY_BASE,
                 MOCK_TCP_PORT=MOCK_TCP_PORT, USER=os.environ['USER']),
         shell=True)
@@ -47,7 +48,7 @@ class MockHttpServer:
     def __init__(self, host=None, port=None, handler=None):
         self.port = port or 0
         self.httpd = SocketServer.TCPServer(
-            (host or "172.17.42.1", self.port),
+            (host or HOST_IP, self.port),
             handler or SimpleHTTPServer.SimpleHTTPRequestHandler)
 
     def __enter__(self):

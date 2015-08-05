@@ -1,0 +1,16 @@
+#!/bin/bash -le
+
+HOST_IP="${HOST_IP:-127.0.0.1}"
+
+cat <<END>> /etc/profile.d/cluster-deployer-env.sh
+export HOST_IP='${HOST_IP}'
+export ETCD_URL='${ETCD_URL:-${HOST_IP}:4001}'
+export ETCD_PROXY_BASE='${ETCD_PROXY_BASE:-/yoda}'
+export PROXY_HOST='${PROXY_HOST:-yoda.local.sh}'
+export SYNC_CERTS='${SYNC_CERTS:-false}'
+export S3_YODA_BUCKET='${S3_YODA_BUCKET:-yoda-certs}'
+export LOG_IDENTIFIER='${LOG_IDENTIFIER:-yoda-proxy}'
+END
+
+
+/bin/bash -le -c "/usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf"
