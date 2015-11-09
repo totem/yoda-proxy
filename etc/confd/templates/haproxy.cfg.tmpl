@@ -122,7 +122,7 @@ frontend http-in
 {{ if ls "/global/listeners/https" }}
 #Https frontend
 frontend https-in
-    bind {{ getv "/global/listeners/https/bind" }}  ssl crt /etc/haproxy/certs.d/default.pem crt /etc/haproxy/certs.d no-sslv3
+    bind {{ getv "/global/listeners/https/bind" }}  ssl crt /etc/haproxy/certs.d/default.pem no-sslv3 crt /etc/haproxy/certs.d no-sslv3
     {{ template "CIDR_ACLS" }}
 
     #Global Blacklist
