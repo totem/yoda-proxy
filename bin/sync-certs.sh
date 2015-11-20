@@ -1,21 +1,25 @@
 #!/bin/bash -el
 CERTS_FOLDER=/etc/haproxy/certs.d
 mkdir -p $CERTS_FOLDER
-if [ "$SYNC_CERTS" == "true" ]; then
-  while [ 1 ]
-  do
 
-      aws s3 sync --delete s3://$S3_YODA_BUCKET/certs.d $CERTS_FOLDER
+function sync_certs {
+  aws s3 sync --delete s3://$S3_YODA_BUCKET/certs.d $CERTS_FOLDER
       #This is not perfect, but certs are typically not added that frequently
-      if [ "$(find $CERTS_FOLDER -type f -mmin -6  | wc -l)" -gt 0 ]; then
-         echo "Change detected. Reloading haproxy..."
+      if [ "$1" == "true" ] || [ "$(find $CERTS_FOLDER -type f -mmin -6  | wc -l)" -gt 0 ];  then
+         echo "Change detected (force: $1). Reloading haproxy..."
          #This call may leak a process if its reload, and confd reload is in progress
          #May be we can use confd reload mechanism in future.
          /etc/init.d/haproxy reload
       fi
+}
+
+if [ "$SYNC_CERTS" == "true" ]; then
+  sync_certs true # Force sync for first run 
+  while [ 1 ]
+  do
       #Make sure to update --mmin flag if the sleep time changes.
       sleep 300s
-
+      sync_certs false
   done
 
 else
