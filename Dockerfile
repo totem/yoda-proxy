@@ -1,12 +1,18 @@
 FROM python:2.7-slim
 ENV DEBIAN_FRONTEND noninteractive
-ENV ETCDCTL_VERSION v0.4.6
-ENV CONFD_VERSION 0.7.1
+ENV ETCDCTL_VERSION v2.3.1
+ENV CONFD_VERSION 0.12.0-alpha3
 
 # Native packages, python depdencies, aws cli, supervisor, dumb-init, etcd
-RUN apt-get update && \
+
+RUN \
     # Haproxy
-    apt-get install -y haproxy curl wget && \
+    echo deb http://httpredir.debian.org/debian jessie-backports main | \
+          sed 's/\(.*\)-sloppy \(.*\)/&@\1 \2/' | tr @ '\n' | \
+          tee /etc/apt/sources.list.d/backports.list && \
+    apt-get update && \
+    # Curl Wget
+    apt-get install -y -t jessie-backports haproxy curl wget && \
     mkdir -p /run/haproxy && \
     chown -R haproxy:haproxy /run/haproxy && \
 
@@ -15,7 +21,7 @@ RUN apt-get update && \
     chmod 555 /usr/local/bin/confd && \
 
     # AWS Cli, Supervisor
-    pip install awscli==1.4.1 supervisor==3.1.2 supervisor-stdout && \
+    pip install awscli supervisor==3.2.3 supervisor-stdout && \
 
     # Dumb Init
     wget -O /usr/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.0.0/dumb-init_1.0.0_amd64 && \
