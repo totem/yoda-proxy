@@ -10,4 +10,4 @@ keys = [
   "upstreams"
 ]
 check_cmd = "/bin/bash -c '/usr/sbin/haproxy -c -f {{.src}} 1>/var/log/haproxy-check.log 2>&1'"
-reload_cmd = "/etc/init.d/haproxy reload"
+reload_cmd = "/usr/sbin/haproxy-reload.sh"

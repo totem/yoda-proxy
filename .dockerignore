@@ -1,0 +1,7 @@
+.idea
+*.iml
+architecture
+test
+.gitignore
+LICENSE
+*.md
