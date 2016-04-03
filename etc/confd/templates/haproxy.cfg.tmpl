@@ -81,6 +81,7 @@ defaults
     option	dontlognull
     option tcpka
     option redispatch
+    retries 10
     timeout connect 5s
     timeout client  615s
     timeout server  615s
@@ -157,10 +158,7 @@ frontend {{ $listener }}
     bind {{ printf "%s/bind" $listener_path  | getv }}
     mode tcp
     option tcplog
-    timeout connect 20s
     timeout client 3h
-    timeout server 3h
-    retries 30
 
     #CIDR ACLs
     {{ template "CIDR_ACLS" }}
