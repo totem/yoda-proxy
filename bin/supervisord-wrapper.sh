@@ -10,6 +10,7 @@ export PROXY_HOST='${PROXY_HOST:-yoda.local.sh}'
 export SYNC_CERTS='${SYNC_CERTS:-false}'
 export S3_YODA_BUCKET='${S3_YODA_BUCKET:-yoda-certs}'
 export LOG_IDENTIFIER='${LOG_IDENTIFIER:-yoda-proxy}'
+export GOMAXPROCS='${GOMAXPROCS:-1}'
 END
 
 
