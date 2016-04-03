@@ -11,7 +11,7 @@ from time import sleep
 
 __author__ = 'sukrit'
 
-PROXY_REFRESH_TIME = 10
+PROXY_REFRESH_TIME = 18
 
 
 def teardown_module():
