@@ -169,11 +169,11 @@ frontend {{ $listener }}
     {{ template "GLOBAL_BLACKLIST_TCP" }}
 
     {{ if printf "%s/acls/denied" $listener_path  | ls }}
-    tcp-request  connection reject if {{range printf "%s/acls/denied/*" $listener_path | getvs}} {{.}} or{{ end }}
+    tcp-request connection reject if {{range printf "%s/acls/denied/*" $listener_path | getvs}} {{.}} or{{ end }}
     {{ end }}
 
     {{ if printf "%s/acls/allowed" $listener_path  | ls }}
-    tcp-request  connection reject if {{range printf "%s/acls/allowed/*" $listener_path | getvs }}!{{.}} {{ end }}
+    tcp-request connection reject if {{range printf "%s/acls/allowed/*" $listener_path | getvs }}!{{.}} {{ end }}
     {{ end }}
 
     {{ if printf "%s/upstream" $listener_path  | ls}}{{ $upstream := printf "%s/upstream" $listener_path | getv }}
@@ -192,7 +192,7 @@ backend {{ $upstream }}
    {{ $health_interval := printf "%s/interval" $health }}
    {{ if $health_uri | exists }}option httpchk GET {{ $health_uri | getv }}{{ end }}
    {{ if $health_timeout | exists }}timeout check {{ $health_timeout | getv }}{{ end }}
-   {{ range $endpoint := printf "/upstreams/%s/endpoints/*" $upstream | gets }}{{ $endpointName := $endpoint.Key | dir | base }}
+   {{ range $endpoint := printf "/upstreams/%s/endpoints/*" $upstream | gets }}{{ $endpointName := $endpoint.Key | base }}
    server {{ $endpointName }} {{ $endpoint.Value }}  check inter {{ if $health_interval | exists }}{{$health_interval | getv}}{{ else }}2m{{ end }}
    {{ end }}
 {{ end }}{{ end }}
