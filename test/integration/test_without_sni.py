@@ -2,7 +2,8 @@
 from integration import \
     MockHttpServer, HTTP_TEST_TIMEOUT, _add_node, \
     _add_location, _request_proxy, CleanupEtcdFolders, _remove_node, \
-    _add_acl, _add_upstream, _add_tcp_listener, MOCK_TCP_PORT, delete_etcd_dir, YODA_HOST
+    _add_acl, _add_upstream, _add_tcp_listener, MOCK_TCP_PORT, \
+    YODA_HOST
 from nose.tools import assert_equals
 
 import requests
@@ -77,7 +78,8 @@ def test_tcp_proxy_backend():
         with MockHttpServer() as node1:
             with MockHttpServer() as node2:
                 _add_upstream(upstream, mode='tcp')
-                _add_tcp_listener('test-tcp', '*:%d' % MOCK_TCP_PORT, upstream)
+                _add_tcp_listener('test-tcp', '*:%d'
+                                  % MOCK_TCP_PORT, upstream)
                 _add_node(upstream, 'node1', node1)
                 _add_node(upstream, 'node2', node2)
                 # Wait 5s for changes to apply
