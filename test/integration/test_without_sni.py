@@ -1,8 +1,9 @@
 
-from integration import setup_yoda, destroy_yoda, \
+from integration import \
     MockHttpServer, HTTP_TEST_TIMEOUT, _add_node, \
     _add_location, _request_proxy, CleanupEtcdFolders, _remove_node, \
-    _add_acl, _add_upstream, _add_tcp_listener, MOCK_TCP_PORT
+    _add_acl, _add_upstream, _add_tcp_listener, MOCK_TCP_PORT, \
+    YODA_HOST
 from nose.tools import assert_equals
 
 import requests
@@ -11,27 +12,24 @@ from time import sleep
 
 __author__ = 'sukrit'
 
-PROXY_REFRESH_TIME = 5
-
-
-def setup_module():
-    setup_yoda()
+PROXY_REFRESH_TIME = 12
 
 
 def teardown_module():
-    destroy_yoda()
+    # delete_etcd_dir()
     pass
 
 
 def test_http_port_bindings():
-    resp = requests.get('http://127.0.0.1:80', timeout=HTTP_TEST_TIMEOUT)
+    resp = requests.get('http://{YODA_HOST}:80'.format(YODA_HOST=YODA_HOST),
+                        timeout=HTTP_TEST_TIMEOUT)
     # Access denied (by default)
     assert_equals(resp.status_code, 403)
 
 
 def test_https_port_bindings():
-    resp = requests.get('https://127.0.0.1:443', timeout=HTTP_TEST_TIMEOUT,
-                        verify=False)
+    resp = requests.get('http://{YODA_HOST}:80'.format(YODA_HOST=YODA_HOST),
+                        timeout=HTTP_TEST_TIMEOUT, verify=False)
     # Access denied (by default)
     assert_equals(resp.status_code, 403)
 
@@ -80,7 +78,8 @@ def test_tcp_proxy_backend():
         with MockHttpServer() as node1:
             with MockHttpServer() as node2:
                 _add_upstream(upstream, mode='tcp')
-                _add_tcp_listener('test-tcp', '*:%d' % MOCK_TCP_PORT, upstream)
+                _add_tcp_listener('test-tcp', '*:%d'
+                                  % MOCK_TCP_PORT, upstream)
                 _add_node(upstream, 'node1', node1)
                 _add_node(upstream, 'node2', node2)
                 # Wait 5s for changes to apply

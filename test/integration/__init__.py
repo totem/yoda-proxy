@@ -1,8 +1,6 @@
 __author__ = 'sukrit'
 
 import os
-import time
-from subprocess import call, check_call
 import SimpleHTTPServer
 import SocketServer
 import etcd
@@ -10,37 +8,14 @@ import requests
 
 from threading import Thread
 
-DOCKER = os.environ.get('DOCKER_CMD', 'docker -H 127.0.0.1:8283')
 ETCD_PROXY_BASE = os.environ.get('ETCD_PROXY_BASE', '/test-yoda-integration')
 ETCD_HOST = os.environ.get('ETCD_HOST', 'localhost')
 ETCD_PORT = int(os.environ.get('ETCD_PORT', '4001'))
 MOCK_TCP_PORT = int(os.environ.get('MOCK_TCP_PORT', '31325'))
 HOST_IP = os.environ.get('HOST_IP', '127.0.0.1')
-HTTP_TEST_TIMEOUT = 10  # In seconds
+YODA_HOST = os.environ.get('YODA_HOST', HOST_IP)
+HTTP_TEST_TIMEOUT = 6  # In seconds
 MODULE_DIR = os.path.abspath(os.path.dirname(__file__))
-
-
-def build_yoda():
-    check_call(
-        '{DOCKER} build --rm  -t totem/yoda-integration {MODULE_DIR}/../../'
-        .format(DOCKER=DOCKER, MODULE_DIR=MODULE_DIR), shell=True)
-
-
-def setup_yoda_sni():
-    build_yoda()
-
-
-def setup_yoda():
-    build_yoda()
-    check_call(
-        '{DOCKER} run --name yoda-integration -d --net=host '
-        '-v /dev/log:/dev/log '
-        '-e ETCD_PROXY_BASE'
-        '={ETCD_PROXY_BASE} totem/yoda-integration'
-        .format(DOCKER=DOCKER, ETCD_PROXY_BASE=ETCD_PROXY_BASE,
-                MOCK_TCP_PORT=MOCK_TCP_PORT, USER=os.environ['USER']),
-        shell=True)
-    time.sleep(10)
 
 
 class MockHttpServer:
@@ -72,13 +47,6 @@ class CleanupEtcdFolders:
     def __exit__(self, exc_type, exc_val, exc_tb):
         for key in self.keys:
             delete_etcd_dir(key)
-
-
-def destroy_yoda():
-    call('%s stop yoda-integration' % DOCKER, shell=True)
-    call('%s rm yoda-integration' % DOCKER, shell=True)
-    delete_etcd_dir()
-    pass
 
 
 def get_etcd_client():
@@ -167,7 +135,7 @@ def _add_location(host, upstream, location_name='home', path='/',
 
     set_etcd_key('{location_key}/path'.format(location_key=location_key), path)
     set_etcd_key('{location_key}/force-ssl'.format(location_key=location_key),
-                 force_ssl)
+                 'true' if force_ssl else 'false')
     set_etcd_key('{location_key}/upstream'.format(location_key=location_key),
                  upstream)
     for name, alias in aliases.iteritems():
@@ -182,7 +150,7 @@ def _request_proxy(host, protocol='http', allow_redirects=False, port=None,
         'https': 443,
     }[protocol]
     return requests.get(
-        '%s://localhost:%d%s' % (protocol, port, path),
+        '%s://%s:%d%s' % (protocol, YODA_HOST, port, path),
         timeout=HTTP_TEST_TIMEOUT,
         headers={
             'Host': host

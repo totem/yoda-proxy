@@ -1,12 +1,14 @@
-<pre>
+```
 ____    ____ ______   _______      ___     
 \   \  /   //  __  \ |       \    /   \    
  \   \/   /|  |  |  ||  .--.  |  /  ^  \   
   \_    _/ |  |  |  ||  |  |  | /  /_\  \  
     |  |   |  `--'  ||  '--'  |/  _____  \ 
     |__|    \______/ |_______//__/     \__\
-</pre>
-Yoda provides a dynamic proxy solution using haproxy, etcd and confd. 
+```
+[![](https://badge.imagelayers.io/totem/yoda-proxy:latest.svg)](https://imagelayers.io/?images=totem/yoda-proxy:latest 'Get your own badge on imagelayers.io')
+
+Yoda provides a dynamic proxy solution using haproxy, etcd and confd.
 A lot of code/config has been ported from deis project. The etcd structure 
 has been adopted based on Vulcand project. The intent of this proxy is to replace
 totem proxy.
@@ -47,7 +49,7 @@ Private Key, Public Key, CA Chain (In this order).
 Once ssl bucket is setup, simply run command below to start your proxy:  
 
 ```
-sudo docker run --name yoda --rm -t -i -v /dev/log:/dev/log -P -p 80:80 -p 443:443 -p 2022:22 -e AWS_ACCESS_KEY_ID=<<S3_ACCESS_KEY_ID>> -e AWS_SECRET_ACCESS_KEY=<<S3_SECRET_KEY>> -e S3_YODA_BUCKET=<<S3_BUCKET_NAME>> -e SYNC_CERTS=true totem/yoda-proxy
+sudo docker run --name yoda --rm -t -i -v /dev/log:/dev/log -P -p 80:80 -p 443:443 -e AWS_ACCESS_KEY_ID=<<S3_ACCESS_KEY_ID>> -e AWS_SECRET_ACCESS_KEY=<<S3_SECRET_KEY>> -e S3_YODA_BUCKET=<<S3_BUCKET_NAME>> -e SYNC_CERTS=true totem/yoda-proxy
 ```
 
 ## ETCD Configuration
