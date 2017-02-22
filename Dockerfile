@@ -11,6 +11,7 @@ RUN \
           sed 's/\(.*\)-sloppy \(.*\)/&@\1 \2/' | tr @ '\n' | \
           tee /etc/apt/sources.list.d/backports.list && \
     apt-get update && \
+    apt-get upgrade -y && \
     # Curl Wget
     apt-get install -y -t jessie-backports haproxy curl wget && \
     mkdir -p /run/haproxy && \
