@@ -70,6 +70,9 @@
     #Use Backends
     {{ template "USE_BACKENDS" }}
     use_backend admin if host-{{ getv "/global/hostname" }}
+
+    acl x_frame_options_found res.hdr('X-Frame-Options') -m found
+    rspadd X-Frame-Options:\ DENY if !x_frame_options_found
 {{ end }}
 
 
@@ -81,7 +84,6 @@
     option http-server-close
     option forwardfor
     # rspadd Strict-Transport-Security:\ max-age=31536000;\ includeSubdomains;\ preload
-    rspadd X-Frame-Options:\ DENY
 {{ end }}
 
 

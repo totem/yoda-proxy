@@ -37,6 +37,13 @@ class MockHttpServer:
         self.httpd.shutdown()
 
 
+class XFrameOptionsHttpHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+
+    def end_headers(self):
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        SimpleHTTPServer.SimpleHTTPRequestHandler.end_headers(self)
+
+
 class CleanupEtcdFolders:
     def __init__(self, keys):
         self.keys = keys or []
