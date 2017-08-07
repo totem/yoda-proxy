@@ -3,7 +3,7 @@ from integration import \
     MockHttpServer, HTTP_TEST_TIMEOUT, _add_node, \
     _add_location, _request_proxy, CleanupEtcdFolders, _remove_node, \
     _add_acl, _add_upstream, _add_tcp_listener, MOCK_TCP_PORT, \
-    YODA_HOST
+    YODA_HOST, XFrameOptionsHttpHandler
 from nose.tools import assert_equals
 
 import requests
@@ -50,6 +50,8 @@ def test_proxy_backend():
                     resp = _request_proxy('test-proxy-backend.abc.com',
                                           protocol=protocol)
                     assert_equals(resp.status_code, 200)
+                    assert_equals(resp.headers['X-Frame-Options'],
+                                  'DENY')
 
 
 def test_backend_with_health_check():
@@ -105,6 +107,25 @@ def test_proxy_with_force_ssl():
             assert_equals(resp.status_code, 301)
             assert_equals(resp.headers['location'],
                           'https://test-proxy-force-ssl.abc.com/')
+
+
+def test_proxy_with_xframe_options():
+    with CleanupEtcdFolders(
+            ['/upstreams/test-proxy-xframe-options',
+             '/hosts/test-proxy-xframe-options.abc.com']):
+        with MockHttpServer(handler=XFrameOptionsHttpHandler) as node1:
+            _add_node('test-proxy-xframe-options', 'node1', node1)
+            _add_location('test-proxy-xframe-options.abc.com',
+                          'test-proxy-xframe-options')
+            # Wait for sometime for changes to apply
+            sleep(PROXY_REFRESH_TIME)
+
+            for protocol in ['http', 'https']:
+                resp = _request_proxy('test-proxy-xframe-options.abc.com',
+                                      protocol=protocol)
+                assert_equals(resp.status_code, 200)
+                assert_equals(resp.headers['X-Frame-Options'],
+                              'SAMEORIGIN')
 
 
 def test_proxy_aliases():
