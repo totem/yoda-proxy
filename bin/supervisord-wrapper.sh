@@ -14,5 +14,9 @@ export GOMAXPROCS='${GOMAXPROCS:-1}'
 export YODA_WATCH_INTERVAL='${YODA_WATCH_INTERVAL:-10}'
 END
 
+if [ ! -e /dev/log ]; then
+  service rsyslog start
+fi
+
 
 /bin/bash -le -c "/usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf"

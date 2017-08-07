@@ -1,0 +1,65 @@
+version: '3'
+
+networks:
+  internal:
+    driver: bridge
+
+services:
+  etcd:
+    image: 'quay.io/coreos/etcd:v2.3.8'
+    command: [
+      '-name', 'etcd0',
+      '-advertise-client-urls','http://etcd.local:2379,http://etcd.local:4001',
+      '-listen-client-urls', 'http://0.0.0.0:2379,http://0.0.0.0:4001',
+      '-initial-advertise-peer-urls', 'http://etcd.local:2380',
+      '-listen-peer-urls', 'http://0.0.0.0:2380',
+      '-initial-cluster-token', 'etcd-cluster-1',
+      '-initial-cluster', 'etcd0=http://etcd.local:2380',
+      '-initial-cluster-state', 'new',
+    ]
+    networks:
+      internal:
+        aliases:
+          - etcd.local
+    volumes:
+      - /usr/share/ca-certificates/:/etc/ssl/certs
+
+    ports:
+      - 4001:4001
+
+  yoda:
+    build: .
+    networks:
+      internal:
+        aliases:
+          - yoda.local
+    environment:
+      ETCD_URL: 'etcd.local:4001'
+      ETCD_HOST: 'etcd.local'
+      ETCD_PORT: '4001'
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+      - 8443:8443
+
+    depends_on:
+      - etcd
+    restart: always
+
+  yoda-test:
+    build: ./test
+    networks:
+      internal:
+        aliases:
+          - 'yoda-test.local'
+    environment:
+      ETCD_URL: 'etcd.local:4001'
+      ETCD_HOST: 'etcd.local'
+      ETCD_PORT: '4001'
+      YODA_HOST: 'yoda.local'
+      HOST_IP: 'yoda-test.local'
+
+    depends_on:
+      - etcd
+      - yoda

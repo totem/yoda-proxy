@@ -8,7 +8,7 @@ import requests
 
 from threading import Thread
 
-ETCD_PROXY_BASE = os.environ.get('ETCD_PROXY_BASE', '/test-yoda-integration')
+ETCD_PROXY_BASE = os.environ.get('ETCD_PROXY_BASE', '/yoda')
 ETCD_HOST = os.environ.get('ETCD_HOST', 'localhost')
 ETCD_PORT = int(os.environ.get('ETCD_PORT', '4001'))
 MOCK_TCP_PORT = int(os.environ.get('MOCK_TCP_PORT', '31325'))

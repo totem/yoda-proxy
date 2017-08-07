@@ -13,7 +13,7 @@ RUN \
     apt-get update && \
     apt-get upgrade -y && \
     # Curl Wget
-    apt-get install -y -t jessie-backports haproxy curl wget && \
+    apt-get install -y -t jessie-backports haproxy curl wget rsyslog && \
     mkdir -p /run/haproxy && \
     chown -R haproxy:haproxy /run/haproxy && \
 
@@ -60,6 +60,6 @@ ADD ./bin/*.sh /usr/sbin/
 RUN chmod -R +x /usr/sbin
 
 
-EXPOSE 80 443 8081
+EXPOSE 80 443 8080 8443 8081
 
 ENTRYPOINT ["/usr/bin/dumb-init", "/usr/sbin/supervisord-wrapper.sh"]

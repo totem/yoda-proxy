@@ -1,6 +1,6 @@
 #!/bin/bash -le
 
-ETCDCTL="etcdctl --peers $ETCD_URL"
+ETCDCTL="etcdctl --peers http://$ETCD_URL"
 #Create initial directories if the do not exist
 for directory in global hosts upstreams
 do
