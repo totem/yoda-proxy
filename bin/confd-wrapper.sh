@@ -1,6 +1,6 @@
 #!/bin/bash -le
 
-ETCDCTL="etcdctl --peers $ETCD_URL"
+ETCDCTL="etcdctl --peers http://$ETCD_URL"
 #Create initial directories if the do not exist
 for directory in global hosts upstreams
 do
@@ -16,6 +16,8 @@ LISTENER_PATH=$ETCD_PROXY_BASE/global/listeners
 $ETCDCTL get $LISTENER_PATH/http/bind  || $ETCDCTL set $LISTENER_PATH/http/bind 0.0.0.0:80
 $ETCDCTL get $LISTENER_PATH/https/bind || $ETCDCTL set $LISTENER_PATH/https/bind 0.0.0.0:443
 $ETCDCTL get $LISTENER_PATH/admin/bind || $ETCDCTL set $LISTENER_PATH/admin/bind localhost:8081
+$ETCDCTL get $LISTENER_PATH/proxy-http/bind  || $ETCDCTL set $LISTENER_PATH/proxy-http/bind 0.0.0.0:8080
+$ETCDCTL get $LISTENER_PATH/proxy-https/bind || $ETCDCTL set $LISTENER_PATH/proxy-https/bind 0.0.0.0:8443
 
 #Default ACLs
 $ETCDCTL get $ETCD_PROXY_BASE/global/acls/public/cidr/src || $ETCDCTL set $ETCD_PROXY_BASE/global/acls/public/cidr/src "0.0.0.0/0"

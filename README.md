@@ -30,7 +30,7 @@ In order to run proxy, you need docker v1.1.0+ installed on your host.
 
 ### Execution without SNI SSL Certificates
 ```
-sudo docker run --name yoda --rm -t -i -P -p 80:80 -p 443:443 -p 2022:22 totem/yoda-proxy
+sudo docker run --name yoda --rm -t -i -P -p 80:80 -p 443:443 totem/yoda-proxy
 ```
 
 ### Execution with SNI SSL Certificates
@@ -50,6 +50,13 @@ Once ssl bucket is setup, simply run command below to start your proxy:
 
 ```
 sudo docker run --name yoda --rm -t -i -v /dev/log:/dev/log -P -p 80:80 -p 443:443 -e AWS_ACCESS_KEY_ID=<<S3_ACCESS_KEY_ID>> -e AWS_SECRET_ACCESS_KEY=<<S3_SECRET_KEY>> -e S3_YODA_BUCKET=<<S3_BUCKET_NAME>> -e SYNC_CERTS=true totem/yoda-proxy
+```
+
+### Using Docker Compose (w/o SNI Certs)
+In order to run a local docker compose stack with proxy and etcd, run command:
+
+```
+docker-compose up yoda
 ```
 
 ## ETCD Configuration
@@ -143,22 +150,15 @@ sudo docker run --name yoda --rm --net=host -t -i -v /dev/log:/dev/log -P totem/
 ```
 
 ## Integration Test
-In order to execute integration test, you need  
-- python 2.7.x  
-- libffi-dev  
-- libssl-dev
+In order to run integration tests using docker-compose, simply run command:
 
-Install the requirements by executing following commands:  
 ```
-cd test
-pip install -r requirements.txt
-```  
+docker-compose up yoda-test
+```
 
-Once dependencies are installed, use nosetests to run the integration test from
-test folder:  
-```
-nosetests --nocapture
-```
+This will
+- Bring up yoda and etcd
+- Run nosetests using a separate container in same network.
 
 
 
